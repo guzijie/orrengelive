@@ -1,0 +1,52 @@
+package com.orrange.admin.entity;
+
+import java.util.Date;
+
+public class Admin {
+    private Long id;
+    private String phone;
+    private String password;
+    private String idCard;
+    private String name;
+    private String avatar;
+    private String gender;
+    private Date birthday;
+    private String education;
+    private String politicalStatus;
+    private String address;
+    private Date validFrom;
+    private Date validTo;
+    private String organization;
+    private String position;
+    // getter/setter
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public String getIdCard() { return idCard; }
+    public void setIdCard(String idCard) { this.idCard = idCard; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public Date getBirthday() { return birthday; }
+    public void setBirthday(Date birthday) { this.birthday = birthday; }
+    public String getEducation() { return education; }
+    public void setEducation(String education) { this.education = education; }
+    public String getPoliticalStatus() { return politicalStatus; }
+    public void setPoliticalStatus(String politicalStatus) { this.politicalStatus = politicalStatus; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public Date getValidFrom() { return validFrom; }
+    public void setValidFrom(Date validFrom) { this.validFrom = validFrom; }
+    public Date getValidTo() { return validTo; }
+    public void setValidTo(Date validTo) { this.validTo = validTo; }
+    public String getOrganization() { return organization; }
+    public void setOrganization(String organization) { this.organization = organization; }
+    public String getPosition() { return position; }
+    public void setPosition(String position) { this.position = position; }
+} 

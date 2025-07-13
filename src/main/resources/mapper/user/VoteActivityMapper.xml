@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.user.mapper.VoteActivityMapper">
+    <select id="selectAllVoteActivities" resultType="com.orrange.user.entity.VoteActivity">
+        SELECT 
+            id,
+            activity_name as activityName,
+            topics_1 as topics1,
+            topics_2 as topics2,
+            topics_3 as topics3,
+            begin_time as beginTime,
+            end_time as endTime,
+            official,
+            community_name as communityName,
+            vote_num as voteNum,
+            vote_scope as voteScope,
+            create_time as createTime,
+            update_time as updateTime
+        FROM activity 
+        ORDER BY create_time DESC
+    </select>
+</mapper> 
