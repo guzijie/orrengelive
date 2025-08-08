@@ -121,23 +121,66 @@
 - **返回类型**：统一响应结构（Result）
 
 ## 2. 管理员投票管理接口文档
-数据库对应数据表activity
+涉及的数据库  投票活动vote_activities
 
-| 字段名          | 类型       | 必填 | 说明                     |
-|------------------|------------|------|--------------------------|
-| id               | bigint(20) | 是   | 主键ID                   |
-| activity_name    | varchar(100) | 是   | 活动名称                 |
-| topics_1         | varchar(200) | 是   | 议题一                   |
-| topics_2         | varchar(200) | 否   | 议题二                   |
-| topics_3         | varchar(200) | 否   | 议题三                   |
-| begin_time       | datetime   | 是   | 开始时间                 |
-| end_time         | datetime   | 是   | 结束时间                 |
-| official         | tinyint(1) | 是   | 是否官方投票：0-否，1-是 |
-| community_name   | varchar(100) | 是   | 小区名称                 |
-| vote_num         | int(11)    | 是   | 票数                     |
-| vote_scope       | varchar(200) | 是   | 已设置投票范围           |
-| create_time      | timestamp  | 是   | 创建时间                 |
-| update_time      | timestamp  | 是   | 更新时间                 |
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 投票活动ID，自增主键                                         |
+| title          | String    | 是   | 活动标题，例如“小区绿化整改投票”                             |
+| attachment_url | String    | 否   | 活动补充材料的文件或图片URL                                   |
+| start_time     | DateTime  | 是   | 投票开始时间                                                 |
+| end_time       | DateTime  | 是   | 投票结束时间                                                 |
+| is_official    | Boolean   | 是   | 是否为官方投票：1-是，0-否                                    |
+| vote_scope     | String    | 否   | 投票范围，例如“小区A 3栋 1单元”                               |
+| created_at     | DateTime  | 是   | 活动创建时间                                                 |
+
+投票活动议题vote_questions
+
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 议题ID，自增主键                                             |
+| activity_id    | Integer   | 是   | 所属投票活动ID（关联 vote_activities.id）                    |
+| question_text  | String    | 是   | 议题内容，例如“您是否同意小区绿化整改方案？”                  |
+| template_id    | Integer   | 是   | 投票选项模板ID（关联 vote_option_templates.id）               |
+| created_at     | DateTime  | 是   | 议题创建时间                                                 |
+
+用户投票表（user_votes）
+
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 用户投票ID，自增主键                                         |
+| user_id        | Integer   | 是   | 用户ID（关联 users.id）                                      |
+| activity_id    | Integer   | 是   | 投票活动ID（关联 vote_activities.id）                        |
+| question_id    | Integer   | 是   | 投票议题ID（关联 vote_questions.id）                         |
+| selected_option| String    | 是   | 用户选择的投票选项，例如“赞同A”                               |
+| vote_method    | String    | 是   | 投票方式，例如“线上”、“短信”、“线下”                         |
+| vote_time      | DateTime  | 是   | 投票时间                                                     |
+| area_size      | Decimal   | 否   | 用户对应房屋面积（平方米），可用于加权统计                     |
+模板项表（vote_option_templates）
+
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 模板ID，自增主键                                             |
+| template_name  | String    | 是   | 模板名称，例如“赞同/反对/弃权/从多”                           |
+| option_list    | String    | 是   | 该模板包含的选项，多个选项用逗号分隔，例如“赞同,反对,弃权,从多” |
+| created_at     | DateTime  | 是   | 模板创建时间   
+
+涉及的数据库users
+| 字段名           | 类型      | 必填 | 说明                                 |
+|------------------|-----------|------|--------------------------------------|
+| id               | Integer   | 是   | 用户ID，自增主键                     |
+| phone            | String    | 是   | 手机号，例如 13812345678              |
+| password         | String    | 是   | 用户密码（加密存储）                  |
+| name             | String    | 否   | 姓名                                 |
+| gender           | Enum      | 否   | 性别                                 |
+| id_card          | String    | 否   | 身份证号码                           |
+| community_name   | String    | 是   | 小区名称                             |
+| building_number  | String    | 否   | 楼栋号，例如 3 栋                     |
+| unit_number      | String    | 否   | 单元号，例如 1 单元                   |
+| room_number      | String    | 否   | 房间号，例如 1504                     |
+| area_size        | Decimal   | 否   | 房屋面积（平方米）                    |
+| is_verified      | Boolean   | 是   | 是否认证成功：1-是，0-否               |
+| created_at       | DateTime  | 是   | 注册时间       |
 
 ###  (1). 获取投票活动列表接口
 
@@ -154,7 +197,7 @@
 
 | 字段名     | 类型     | 必填 | 说明                               |
 | ------- | ------ | -- | -------------------------------- |
-| keyword | String | 否  | 搜索关键词，可匹配小区名或投票主题                |
+| keyword | String | 否  | 搜索关键词，可匹配小区名或投票议题                |
 | status  | String | 否  | 投票状态 (例如: "ongoing", "finished") |
 
 正确返回示例
@@ -165,12 +208,26 @@
   "message": "success",
   "data": [
     {
-      "id": "vote_001",
+      "id": "1",
+      "topics": [],
       "communityName": "乐茄小区",
       "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
-      "startTime": "2025/06/25 00:00",
+      "beginTime": "2025/06/25 00:00",
       "endTime": "2025/07/08 13:07",
-      "status": "已结束"
+      "official": 1,
+      "voteNum": 0,
+      "vote_scope": "ALL"
+    },
+    {
+      "id": "2",
+      "topics": [],
+      "communityName": "乐茄小区",
+      "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
+      "beginTime": "2025/06/25 00:00",
+      "endTime": "2025/07/08 13:07",
+      "official": 1,
+      "voteNum": 0,
+      "vote_scope": "ALL"
     }
   ]
 }
@@ -208,7 +265,7 @@
 
 | 字段名 | 类型     | 必填 | 说明     |
 | --- | ------ | -- | ------ |
-| id  | String | 是  | 投票活动ID |
+| id  | Int | 是  | 投票活动ID |
 
 正确返回示例
 
@@ -217,49 +274,26 @@
   "code": 200,
   "message": "success",
   "data": {
+    "id": "2",
+    "topics": [],
+    "communityName": "乐茄小区",
     "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
-    "totalVoters": 321,
-    "totalArea": "31256平方米",
-    "issues": [
-      {
-        "issueTitle": "议题1 您对小区住宅加装电梯项目持什么态度?",
-        "results": [
-          {
-            "option": "支持",
-            "voteCount": 236,
-            "percentageByPeople": "44.36%",
-            "areaSum": "23766.58",
-            "percentageByArea": "44.25%"
-          }
-        ]
-      }
-    ]
+    "beginTime": "2025/06/25 00:00",
+    "endTime": "2025/07/08 13:07",
+    "official": 1,
+    "voteNum": 0,
+    "vote_scope": "ALL"
   }
 }
+
 ```
 
 错误返回示例
 
 ```json
 {
-  "code": 401,
-  "message": "认证失败，请重新登录",
-  "data": null
-}
-```
-
-```json
-{
-  "code": 404,
-  "message": "投票活动未找到",
-  "data": null
-}
-```
-
-```json
-{
   "code": 500,
-  "message": "服务器内部错误，获取详情失败",
+  "message": "数据库操作失败，发起投票失败",
   "data": null
 }
 ```
@@ -276,16 +310,16 @@
 - **返回类型**：统一响应结构（Result）
 请求参数
 | 字段名           | 类型              | 必填 | 说明                                   |
-| ------------- | --------------- | -- | ------------------------------------ |
-| communityName | String          | 是  | 投票项目/小区名称                            |
-| title         | String          | 是  | 投票主题                                 |
-| voteScope     | Object          | 是  | 投票范围，用于筛选参与投票的用户。详见下方 voteScope 对象结构 |
-| startTime     | DateTime String | 是  | 开始时间 (格式: "YYYY-MM-DD HH\:mm\:ss")   |
-| endTime       | DateTime String | 是  | 结束时间 (格式: "YYYY-MM-DD HH\:mm\:ss")   |
-| issues        | Array[Issue]    | 是  | 议题列表，详见下方 Issue 对象结构                 |
-| attachmentUrl | String          | 否  | 附件的 URL 地址                           |
-
-voteScope 对象结构
+| ------------- | --------------- | -- | ------------------------------------ | | activity_name    | varchar(100) | 是   | 活动名称                 |
+  | topics_1         | varchar(200) | 是   | 议题一                   |
+  | topics_2         | varchar(200) | 否   | 议题二                   |
+  | topics_3         | varchar(200) | 否   | 议题三                   |
+  | begin_time       | datetime   | 是   | 开始时间                 |
+  | end_time         | datetime   | 是   | 结束时间                 |
+  | official         | tinyint(1) | 是   | 是否官方投票：0-否，1-是 |
+  | community_name   | varchar(100) | 是   | 小区名称                 |
+  | vote_scope       | varchar(200) | 是   | 已设置投票范围           |
+  | attachmentUrl       | varchar(200) | 否   | 附件           |
 
 | 字段名       | 类型            | 必填 | 说明                                |
 | --------- | ------------- | -- | --------------------------------- |
@@ -321,37 +355,9 @@ Issue 对象结构
 
 错误返回示例
 
-```json
-{
-  "code": 400,
-  "message": "请求参数不完整或格式错误，请检查必填项",
-  "data": null
-}
-```
 
-```json
-{
-  "code": 400,
-  "message": "结束时间不能早于或等于开始时间",
-  "data": null
-}
-```
 
-```json
-{
-  "code": 400,
-  "message": "至少需要一个投票议题",
-  "data": null
-}
-```
 
-```json
-{
-  "code": 400,
-  "message": "自定义选项不能为空且最多10个",
-  "data": null
-}
-```
 
 ```json
 {
@@ -361,21 +367,6 @@ Issue 对象结构
 }
 ```
 
-```json
-{
-  "code": 401,
-  "message": "认证失败，请重新登录",
-  "data": null
-}
-```
-
-```json
-{
-  "code": 403,
-  "message": "无权进行此操作",
-  "data": null
-}
-```
 
 ```json
 {
@@ -392,6 +383,3 @@ Issue 对象结构
   "data": null
 }
 ```
-
-
-

@@ -1,23 +1,65 @@
 # 用户接口
-## 1. 投票功能
-设计数据库user_vote
+## 1. 用户注册登录
+涉及的数据库users
 
-| 字段名           | 类型      | 必填 | 说明         |
-|------------------|-----------|------|--------------|
-| phone            | String    | 是   | 手机号       |
-| password         | String    | 是   | 密码         |
-| idCard           | String    | 是   | 身份证号码   |
-| name             | String    | 是   | 姓名         |
-| avatar           | String    | 否   | 头像图片URL  |
-| gender           | String    | 否   | 性别         |
-| birthday         | Date      | 否   | 出生日期     |
-| education        | String    | 否   | 学历         |
-| politicalStatus  | String    | 否   | 政治面貌     |
-| address          | String    | 否   | 地址         |
-| validFrom        | Date      | 否   | 有效期开始   |
-| validTo          | Date      | 否   | 有效期结束   |
-| organization     | String    | 否   | 组织         |
-| position         | String    | 否   | 岗位         |
+| 字段名           | 类型      | 必填 | 说明                                 |
+|------------------|-----------|------|--------------------------------------|
+| id               | Integer   | 是   | 用户ID，自增主键                     |
+| phone            | String    | 是   | 手机号，例如 13812345678              |
+| password         | String    | 是   | 用户密码（加密存储）                  |
+| name             | String    | 否   | 姓名                                 |
+| gender           | Enum      | 否   | 性别                                 |
+| id_card          | String    | 否   | 身份证号码                           |
+| community_name   | String    | 是   | 小区名称                             |
+| building_number  | String    | 否   | 楼栋号，例如 3 栋                     |
+| unit_number      | String    | 否   | 单元号，例如 1 单元                   |
+| room_number      | String    | 否   | 房间号，例如 1504                     |
+| area_size        | Decimal   | 否   | 房屋面积（平方米）                    |
+| is_verified      | Boolean   | 是   | 是否认证成功：1-是，0-否               |
+| created_at       | DateTime  | 是   | 注册时间                             |
+
+## 2. 投票功能
+涉及的数据库  投票活动vote_activities
+
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 投票活动ID，自增主键                                         |
+| title          | String    | 是   | 活动标题，例如“小区绿化整改投票”                             |
+| attachment_url | String    | 否   | 活动补充材料的文件或图片URL                                   |
+| start_time     | DateTime  | 是   | 投票开始时间                                                 |
+| end_time       | DateTime  | 是   | 投票结束时间                                                 |
+| is_official    | Boolean   | 是   | 是否为官方投票：1-是，0-否                                    |
+| vote_scope     | String    | 否   | 投票范围，例如“小区A 3栋 1单元”                               |
+| created_at     | DateTime  | 是   | 活动创建时间                                                 |
+
+投票活动议题vote_questions
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 议题ID，自增主键                                             |
+| activity_id    | Integer   | 是   | 所属投票活动ID（关联 vote_activities.id）                    |
+| question_text  | String    | 是   | 议题内容，例如“您是否同意小区绿化整改方案？”                  |
+| template_id    | Integer   | 是   | 投票选项模板ID（关联 vote_option_templates.id）               |
+| created_at     | DateTime  | 是   | 议题创建时间                                                 |
+
+用户投票表（user_votes）
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 用户投票ID，自增主键                                         |
+| user_id        | Integer   | 是   | 用户ID（关联 users.id）                                      |
+| activity_id    | Integer   | 是   | 投票活动ID（关联 vote_activities.id）                        |
+| question_id    | Integer   | 是   | 投票议题ID（关联 vote_questions.id）                         |
+| selected_option| String    | 是   | 用户选择的投票选项，例如“赞同A”                               |
+| vote_method    | String    | 是   | 投票方式，例如“线上”、“短信”、“线下”                         |
+| vote_time      | DateTime  | 是   | 投票时间                                                     |
+| area_size      | Decimal   | 否   | 用户对应房屋面积（平方米），可用于加权统计                     |
+模板项表（vote_option_templates）
+| 字段名         | 类型      | 必填 | 说明                                                         |
+|----------------|-----------|------|--------------------------------------------------------------|
+| id             | Integer   | 是   | 模板ID，自增主键                                             |
+| template_name  | String    | 是   | 模板名称，例如“赞同/反对/弃权/从多”                           |
+| option_list    | String    | 是   | 该模板包含的选项，多个选项用逗号分隔，例如“赞同,反对,弃权,从多” |
+| created_at     | DateTime  | 是   | 模板创建时间                                                 |
+
 ### (1). 获取总体投票活动
 
 - **接口名称**：管理端获取
