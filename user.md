@@ -17,6 +17,174 @@
 | area_size        | Decimal   | 否   | 房屋面积（平方米）                    |
 | is_verified      | Boolean   | 是   | 是否认证成功：1-是，0-否               |
 | created_at       | DateTime  | 是   | 注册时间                             |
+### (1).注册获取验证码
+
+- **接口名称**：用户端注册获取验证码
+- **请求方式**：POST
+- **请求路径**：`/api/user/verification`
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）
+
+请求参数
+| 字段名           | 类型      | 必填 | 说明         |
+|------------------|-----------|------|--------------|
+| phone            | String    | 是   | 手机号       |
+| password         | String    | 是   | 密码         |
+| verification     | String    | 是   | 验证码   |
+
+
+**示例请求体：**
+```json
+{
+  "phone": "13800000000"
+}
+```
+可能的错误返回
+```json
+{
+  "code": 400,
+  "message": "手机号已注册",
+  "data": null
+}
+```
+```json
+{
+"code": 404,
+"message": "程序更新中清等待",
+"data": null
+}
+```
+可能的正确返回
+```json
+{
+"code": 200,
+"message": "success",
+"data": null
+}
+
+```
+### (2). 注册
+- **接口名称**：用户注册
+- **请求方式**：POST
+- **请求路径**：`/api/user/register`
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）
+
+
+**示例请求体：**
+```json
+{
+  "phone": "13800000000",
+  "password": "123456",
+  "verification":"24565"
+}
+```
+返回参数
+
+- **code**：状态码（200为成功）
+- **message**：提示信息
+- **data**：用户信息（UserVO）
+
+**示例返回体：**
+可能的错误返回
+
+- 手机号已注册时，返回：
+```json
+{
+  "code": 400,
+  "message": "验证码过期或者验证码不准确",
+  "data": null
+}
+
+```
+```json
+{
+  "code": 400,
+  "message": "手机号已经注册",
+  "data": null
+}
+```
+### (3). 登录获取验证码
+- **接口名称**：用户端注册获取验证码
+- **请求方式**：POST
+- **请求路径**：`/api/user/verification`
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）
+
+请求参数
+| 字段名           | 类型      | 必填 | 说明         |
+|------------------|-----------|------|--------------|
+| phone            | String    | 是   | 手机号       |
+| password         | String    | 是   | 密码         |
+| verification     | String    | 是   | 验证码   |
+
+
+**示例请求体：**
+```json
+{
+  "phone": "13800000000"
+}
+```
+可能的错误返回
+```json
+{
+  "code": 400,
+  "message": "手机号已注册",
+  "data": null
+}
+```
+```json
+{
+"code": 404,
+"message": "程序更新中清等待",
+"data": null
+}
+```
+可能的正确返回
+```json
+{
+"code": 200,
+"message": "success",
+"data": null
+}
+
+```
+### 用户端登录
+- **接口名称**：用户登录
+- **请求方式**：POST
+- **请求路径**：`/api/user/login`
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）获取验证码获取验证码
+  
+请求参数
+
+  | 字段            | 类型      | 是否必填                        | 约束                           | 说明             |
+  | ------------- | ------- | --------------------------- | ---------------------------- | -------------- |
+  | `phone`       | string  | 是                           | 中国大陆手机号 11 位                 | 用户手机号          |
+  | `login_type`  | enum    | 是                           | `password` \| `sms`          | 登录方式           |
+  | `password`    | string  | 当 `login_type=password` 时必填 | *bcrypt/scrypt* 哈希后再经 TLS 传输 | 登录密码           |
+  | `code`        | string  | 当 `login_type=sms` 时必填      | 6 位数字                        | 短信验证码          |
+
+示例返回
+```json
+{
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "user": {
+      "id": 123,
+      "phone": "13812345678",
+      "name": "张三",
+      "community_name": "幸福小区",
+      "building_number": "3栋",
+      "unit_number": "1单元",
+      "room_number": "1504",
+      "is_verified": true
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
 
 ## 2. 投票功能
 涉及的数据库  投票活动vote_activities
@@ -62,7 +230,7 @@
 
 ### (1). 获取总体投票活动
 
-- **接口名称**：管理端获取
+- **接口名称**：用户获取
 - **请求方式**：GET
 - **请求路径**：`/api/user/vote `
 - **请求参数类型**：JSON
@@ -131,7 +299,7 @@
 
 ### (2) 用户点击投票“同意按钮”
 
-- **接口名称**：管理端获取
+- **接口名称**：用户获取
 - **请求方式**：POST
 - **请求路径**：`/api/user/voteAgree `
 - **请求参数类型**：JSON
