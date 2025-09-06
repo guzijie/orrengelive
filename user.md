@@ -1,3 +1,4 @@
+
 # 用户接口
 ## 1. 用户注册登录
 涉及的数据库users
@@ -161,7 +162,7 @@
   | 字段            | 类型      | 是否必填                        | 约束                           | 说明             |
   | ------------- | ------- | --------------------------- | ---------------------------- | -------------- |
   | `phone`       | string  | 是                           | 中国大陆手机号 11 位                 | 用户手机号          |
-  | `login_type`  | enum    | 是                           | `password` \| `sms`          | 登录方式           |
+  | `loginType`  | enum    | 是                           | `password` \| `sms`          | 登录方式           |
   | `password`    | string  | 当 `login_type=password` 时必填 | *bcrypt/scrypt* 哈希后再经 TLS 传输 | 登录密码           |
   | `code`        | string  | 当 `login_type=sms` 时必填      | 6 位数字                        | 短信验证码          |
 
@@ -236,23 +237,37 @@
 - **请求参数类型**：JSON
 - **返回类型**：统一响应结构（Result）
 
-
+返回参数
 | 字段名           | 类型      | 必填 | 说明         |
 |------------------|-----------|------|--------------|
-| activity_name        | String    | 是   | 活动名称       |
-| topics_1        | String    | 是   | 议题一         |
-| topics_2          | String    | 否   | 议题二   |
-| topics_3             | String    | 否   | 议题三         |
-| begin_time          | String    | 是   | 开始时间  |
-| end_time           | String    | 是   | 结束时间         |_
-| official        | bool      | 是   | 官方投票    |
-| community_name        | String    | 是   | 小区名字         |
-| vote_num              | int       | 是    |   票数
-| vote_scope          | String    | 是   | 已投票范围         |
+| id              | Integer  | 是  | 活动 ID     |
+| title           | String   | 是  | 活动标题（大标题） |
+| attachmentUrl  | String   | 否  | 活动补充材料的文件或图片URL |
+| startTime     | DateTime | 是  | 开始时间      |
+| endTime       | DateTime | 是  | 结束时间      |
+| isOfficial    | Boolean  | 是  | 是否官方投票    |
+| communityName | String   | 是  | 小区名称      |
+| createdAt     | String   | 是  | 活动创建时间      |
+| voteScope     | String   | 是  | 投票范围      |
+
 
 请求参数
 
-无
+| 字段名             | 类型       | 必填 | 说明                                                          |
+| --------------- | -------- | -- | ------------------------------------------------------------------- |
+| communityName | String   | 否  | 小区名称**关键字**）              |
+| endTime   | DateTime | 否  | **截止时间**（仅返回 `end_time ≤ end_time_to` 的活动；|
+| page            | Integer  | 否  | 页码，默认 1                                                         |
+| pageSize      | Integer  | 否  | 每页数量，默认 10                                                      |
+
+| 字段名        | 类型      | 必填 | 说明                                  |
+| ---------- | ------- | -- | ----------------------------------- |
+| page       | Integer | 是  | 当前页码                                |
+| pageSize | Integer | 是  | 当前每页数量                              |
+| total      | Integer | 是  | 筛选后总记录数                         |
+| hasMore  | Boolean | 是  | 是否还有下一页                          |
+
+
 
 可能的错误返回
 ```json
@@ -266,54 +281,68 @@
 可能的正确返回
 ```json
 {
-"code": 200,
-"message": "success",
-"data": {
-"phone": 123456,
-"title": "小区绿化方案投票",
-"description": "请选择您支持的绿化方案",
-"status": "进行中",
-"endTime": "2025-07-20 23:59:59"
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 17,
+      "title": "物业费调整方案投票",
+      "startTime": "2025-09-01 00:00:00",
+      "endTime": "2025-09-10 23:59:59",
+      "isOfficial": true,
+      "communityName": "蓝天小区"
+    },
+    {
+      "id": 16,
+      "title": "电梯维保服务更换投票",
+      "startTime": "2025-08-25 09:00:00",
+      "endTime": "2025-09-05 23:59:59",
+      "isOfficial": false,
+      "communityName": "白云小区"
+    },
+    {
+      "id": 15,
+      "title": "小区绿化整改投票",
+      "startTime": "2025-08-20 00:00:00",
+      "endTime": "2025-09-05 23:59:59",
+      "isOfficial": true,
+      "communityName": "蓝天小区"
+    }
+  ],
+  "page_meta": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 27
+  }
 }
-}
-```
-```json
-{
-"code": 200,
-"message": "success",
-"data": {
-"activityName": "小区绿化方案投票",
-"topics1": "是否增加绿化面积",
-"topics2": "是否修建电梯",
-"topics3": "无",
-"beginTime": "2025-05-20 23:59:59",
-"endTime": "2025-07-20 23:59:59",
-"official": "1",
-"communityName": "蓝天小区 白云小区",
-"voteNum": "110",
-"voteScope": ""
-}
-}
+
 ```
 
-
-### (2) 用户点击投票“同意按钮”
+（2) 获取具体活动和里面议题内容
 
 - **接口名称**：用户获取
-- **请求方式**：POST
-- **请求路径**：`/api/user/voteAgree `
+- **请求方式**：GET
+- **请求路径**：`/api/user/vote/:activityId`
 - **请求参数类型**：JSON
 - **返回类型**：统一响应结构（Result）
 
+返回参数
 
-| 字段名           | 类型      | 必填 | 说明         |
-|------------------|-----------|------|--------------|
-| vote_num        | int    | 是   | 点击同意票数加一      |
+| 字段名            | 类型             | 必填 | 说明                              |
+| -------------- | -------------- | -- | ------------------------------- |
+| id             | Integer        | 是  | 议题 ID                           |
+| activityId   | Integer        | 是  | 活动 ID                           |
+| questionText | String         | 是  | 议题文案                            |
+| templateId   | Integer        | 是  | 选项模板 ID                         |
+| createdAt      | String        | 是  | 议题创建时间                       |
 
 
 请求参数
 
-无
+| 字段名          | 类型      | 必填 | 说明   |
+| ------------ | ------- | -- | ----- |
+| activityId | Integer | 是  | 活动 ID |
+
 
 可能的错误返回
 ```json
@@ -327,10 +356,116 @@
 可能的正确返回
 ```json
 {
-"code": 200,
-"message": "success",
-"data": {
-"vote_num": 1
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "title": "小区绿化整改投票",
+    "attachmentUrl": null,
+    "startTime": "2025-08-10T01:00:00.000+00:00",
+    "endTime": "2025-08-15T10:00:00.000+00:00",
+    "isOfficial": true,
+    "communityName": "幸福花园",
+    "buildingNumber": "1栋",
+    "unitNumber": "1单元",
+    "createdAt": "2025-08-08 10:20:00",
+    "voteScope": "幸福花园 1栋栋 1单元单元",
+    "questions": [
+      {
+        "questionsId": 1,
+        "activityId": 1,
+        "questionText": "是否同意更换小区草坪",
+        "options": [
+          "赞同",
+          "反对",
+          "弃权",
+          "从多"
+        ],
+        "myVote": null,
+        "createdAt": "2025-08-08 10:30:00"
+      },
+      {
+        "questionsId": 2,
+        "activityId": 1,
+        "questionText": "是否增加休闲座椅",
+        "options": [
+          "赞同A",
+          "赞同B",
+          "反对",
+          "弃权",
+          "从多"
+        ],
+        "myVote": null,
+        "createdAt": "2025-08-08 10:31:00"
+      },
+      {
+        "questionsId": 3,
+        "activityId": 1,
+        "questionText": "是否增设健身器材",
+        "options": [
+          "满意",
+          "基本满意",
+          "一般",
+          "较差",
+          "不满意"
+        ],
+        "myVote": null,
+        "createdAt": "2025-08-08 10:32:00"
+      }
+    ]
+  }
 }
+```
+
+（3）提交投票
+
+- **接口名称**：用户获取
+- **请求方式**：POST
+- **请求路径**：`/api/user/vote/:userId/:id `
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）
+
+返回参数
+
+无
+
+请求参数
+
+| id             | Integer   | 是   | 用户投票ID，自增主键                                         |
+| userId        | Integer   | 是   | 用户ID（关联 users.id）                                      |
+| activityId    | Integer   | 是   | 投票活动ID（关联 vote_activities.id）                        |
+| questionId    | Integer   | 是   | 投票议题ID（关联 vote_questions.id）                         |
+| selectedOption| String    | 是   | 用户选择的投票选项，例如“赞同A”                               |
+| voteMethod    | String    | 是   | 投票方式，例如“线上”、“短信”、“线下”                         |
+| voteTime      | DateTime  | 是   | 投票时间                                                     |
+| areaSize      | Decimal   | 否   | 用户对应房屋面积（平方米），可用于加权统计                     |
+
+
+可能的正确返回
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 9991,
+    "activityId": 1,
+    "questionId": 101,
+    "selectedOption": "赞同",
+    "voteMethod": "线上",
+    "voteTime": "2025-08-31 15:20:00"
+  }
+}
+```
+
+可能的错误返回
+```json
+{  "code": 400,
+   "message": "活动未开始或已结束", 
+   "data": null
+}
+
+{  "code": 400,
+   "message": "您已完成该议题投票", 
+   "data": null 
 }
 ```

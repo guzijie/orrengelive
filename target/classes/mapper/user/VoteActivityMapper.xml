@@ -1,22 +1,66 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.orrange.user.mapper.VoteActivityMapper">
-    <select id="selectAllVoteActivities" resultType="com.orrange.user.entity.VoteActivity">
-        SELECT 
-            id,
-            activity_name as activityName,
-            topics_1 as topics1,
-            topics_2 as topics2,
-            topics_3 as topics3,
-            begin_time as beginTime,
-            end_time as endTime,
-            official,
-            community_name as communityName,
-            vote_num as voteNum,
-            vote_scope as voteScope,
-            create_time as createTime,
-            update_time as updateTime
-        FROM activity 
-        ORDER BY create_time DESC
+
+    <resultMap id="BaseResultMap" type="com.orrange.user.entity.VoteActivity">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="start_time" property="startTime" jdbcType="TIMESTAMP"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="is_official" property="isOfficial" jdbcType="TINYINT"/>
+        <result column="community_name" property="communityName" jdbcType="VARCHAR"/>
+        <result column="building_number" property="buildingNumber" jdbcType="VARCHAR"/>
+        <result column="unit_number" property="unitNumber" jdbcType="VARCHAR"/>
+        <result column="attachment_url" property="attachmentUrl" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, title, start_time, end_time, is_official, community_name, 
+        building_number, unit_number, attachment_url, created_at
+    </sql>
+
+    <select id="selectById" parameterType="int" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM vote_activities
+        WHERE id = #{id}
     </select>
-</mapper> 
+
+    <select id="selectVoteActivities" parameterType="com.orrange.user.dto.VoteActivityQueryDTO" resultMap="BaseResultMap">
+        <bind name="offset" value="(query.page - 1) * query.pageSize"/>
+        SELECT <include refid="Base_Column_List"/>
+        FROM vote_activities
+        <where>
+            <if test="query.communityName != null and query.communityName != ''">
+                AND community_name LIKE CONCAT('%', #{query.communityName}, '%')
+            </if>
+            <if test="query.endTime != null">
+                AND end_time &lt;= #{query.endTime}
+            </if>
+            <if test="query.isOfficial != null">
+                AND is_official = #{query.isOfficial}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        <if test="query.page != null and query.pageSize != null">
+            LIMIT #{query.pageSize} OFFSET #{offset}
+        </if>
+    </select>
+
+    <select id="countVoteActivities" parameterType="com.orrange.user.dto.VoteActivityQueryDTO" resultType="int">
+        SELECT COUNT(*)
+        FROM vote_activities
+        <where>
+            <if test="query.communityName != null and query.communityName != ''">
+                AND community_name LIKE CONCAT('%', #{query.communityName}, '%')
+            </if>
+            <if test="query.endTime != null">
+                AND end_time &lt;= #{query.endTime}
+            </if>
+            <if test="query.isOfficial != null">
+                AND is_official = #{query.isOfficial}
+            </if>
+        </where>
+    </select>
+
+</mapper>
