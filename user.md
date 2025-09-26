@@ -31,13 +31,14 @@
 |------------------|-----------|------|--------------|
 | phone            | String    | 是   | 手机号       |
 | password         | String    | 是   | 密码         |
-| verification     | String    | 是   | 验证码   |
+
 
 
 **示例请求体：**
 ```json
 {
-  "phone": "13800000000"
+  "phone": "13800000000",
+  "scene":"register"
 }
 ```
 可能的错误返回
@@ -116,14 +117,15 @@
 | 字段名           | 类型      | 必填 | 说明         |
 |------------------|-----------|------|--------------|
 | phone            | String    | 是   | 手机号       |
-| password         | String    | 是   | 密码         |
-| verification     | String    | 是   | 验证码   |
+
+
 
 
 **示例请求体：**
 ```json
 {
-  "phone": "13800000000"
+  "phone": "13800000000",
+  "scene":"login"
 }
 ```
 可能的错误返回
@@ -236,6 +238,7 @@
 - **请求路径**：`/api/user/vote `
 - **请求参数类型**：JSON
 - **返回类型**：统一响应结构（Result）
+ **请求头**：Authorization: Bearer <token>
 
 返回参数
 | 字段名           | 类型      | 必填 | 说明         |
@@ -276,7 +279,15 @@
   "message": "目前暂无投票",
   "data": null
 }
+{ "code": 401, 
+  "message": "未登录或登录已过期", 
+  "data": null 
+}
 
+{ "code": 403, 
+  "message": "无权限访问或不在投票范围内", 
+  "data": null 
+}
 ```
 可能的正确返回
 ```json
@@ -325,6 +336,7 @@
 - **请求路径**：`/api/user/vote/:activityId`
 - **请求参数类型**：JSON
 - **返回类型**：统一响应结构（Result）
+- **请求头**：Authorization: Bearer <token>
 
 返回参数
 
@@ -350,6 +362,14 @@
   "code": 400,
   "message": "目前无该投票信息",
   "data": null
+}
+{ "code": 401, 
+  "message": "未登录或登录已过期", 
+  "data": null 
+}
+{ "code": 403, 
+  "message": "无权限访问或不在投票范围内", 
+  "data": null 
 }
 
 ```
@@ -417,13 +437,14 @@
 }
 ```
 
-（3）提交投票
+（3）提交投票（不传 userId，后端从登录态识别）
 
 - **接口名称**：用户获取
 - **请求方式**：POST
-- **请求路径**：`/api/user/vote/:userId/:id `
-- **请求参数类型**：JSON
+- **请求路径**：`/api/user/vote`
+- **请求参数类型**：Query
 - **返回类型**：统一响应结构（Result）
+- **请求头**：Authorization: Bearer <token>
 
 返回参数
 
@@ -431,14 +452,12 @@
 
 请求参数
 
-| id             | Integer   | 是   | 用户投票ID，自增主键                                         |
-| userId        | Integer   | 是   | 用户ID（关联 users.id）                                      |
 | activityId    | Integer   | 是   | 投票活动ID（关联 vote_activities.id）                        |
 | questionId    | Integer   | 是   | 投票议题ID（关联 vote_questions.id）                         |
 | selectedOption| String    | 是   | 用户选择的投票选项，例如“赞同A”                               |
 | voteMethod    | String    | 是   | 投票方式，例如“线上”、“短信”、“线下”                         |
 | voteTime      | DateTime  | 是   | 投票时间                                                     |
-| areaSize      | Decimal   | 否   | 用户对应房屋面积（平方米），可用于加权统计                     |
+
 
 
 可能的正确返回
@@ -447,7 +466,6 @@
   "code": 200,
   "message": "success",
   "data": {
-    "id": 9991,
     "activityId": 1,
     "questionId": 101,
     "selectedOption": "赞同",
@@ -468,4 +486,87 @@
    "message": "您已完成该议题投票", 
    "data": null 
 }
+{ "code": 401, 
+  "message": "未登录或登录已过期", 
+  "data": null 
+}
+{ "code": 403, 
+  "message": "不在投票范围", 
+  "data": null 
+}
+```
+
+（4）投票历史（不传 userId，后端从登录态识别）
+ 获取投票历史列表（当前登录用户）
+- **接口名称**：用户获取（投票历史）
+- **请求方式**：GET
+- **请求路径**：/api/user/vote/history
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result）
+- **请求头**：Authorization: Bearer <token>
+
+请求参数
+
+| 字段名        | 类型      | 必填 | 说明               |
+| ---------- | ------- | -- | ---------------- |
+| activityId | Integer | 否  | 指定活动筛选（不传返回全部历史） |
+| page       | Integer | 否  | 页码，默认 1          |
+| pageSize   | Integer | 否  | 每页数量，默认 10       |
+
+鉴权：从登录态 Authorization: Bearer <token> 识别当前用户，后端以此查询，不信任前端自填 userId。
+
+返回参数
+
+| 字段名            | 类型       | 必填 | 说明                          |
+| -------------- | -------- | -- | --------------------------- |
+| activityId     | Integer  | 是  | 活动 ID                       |
+| activityTitle  | String   | 是  | 活动标题（展示用）                   |
+| communityName  | String   | 是  | 小区名称（展示用）                   |
+| questionId     | Integer  | 是  | 议题 ID                       |
+| questionText   | String   | 是  | 议题内容（展示用）                   |
+| selectedOption | String   | 是  | 我选择的选项                      |
+| voteMethod     | String   | 是  | 投票方式（如：线上）                  |
+| voteTime       | DateTime | 是  | 投票时间（`YYYY-MM-DD HH:mm:ss`） |
+
+| 字段名      | 类型      | 必填 | 说明                                 |
+| -------- | ------- | -- | ---------------------------------- |
+| page     | Integer | 是  | 当前页码                               |
+| pageSize | Integer | 是  | 当前每页数量                             |
+| total    | Integer | 是  | 总记录数                               |
+| hasMore  | Boolean | 是  | 是否还有下一页（`page * pageSize < total`） |
+
+可能的错误返回
+```json
+{   "code": 401, 
+	"message": "未登录或登录已过期", 
+	"data": null 
+	}
+	
+{  "code": 400, 
+   "message": "暂无投票历史", 
+   "data": null
+}
+
+```
+
+可能的正确返回
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "activityId": 17,
+      "activityTitle": "物业费调整方案投票",
+      "communityName": "蓝天小区",
+      "questionId": 301,
+      "questionText": "是否同意调整收费标准A？",
+      "selectedOption": "赞同",
+      "voteMethod": "线上",
+      "voteTime": "2025-09-02 10:15:20"
+    }
+  ],
+  "page_meta": { "page": 1, "pageSize": 10, "total": 12, "hasMore": true }
+}
+
 ```

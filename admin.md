@@ -1,5 +1,16 @@
-# 管理端
+# 管理端投票功能实现文档（Admin）
 
+> 统一约定  
+> - **前缀**：所有管理端接口均以 `/api/admin/**` 开头。  
+> - **鉴权**：除登录外，所有接口**必须**携带请求头 `Authorization: Bearer <adminToken>`。    
+> - **分页**：`page_meta = { page, pageSize, total, hasMore }`；`hasMore = page * pageSize < total`。  
+> - **时间格式**：`YYYY-MM-DD HH:mm:ss`（示例见下）。  
+> - **字段命名**：接口层使用 `camelCase`，数据库层使用下划线命名；文档内给出字段映射。
+---
+
+> 接口层仅做**驼峰转换**与**聚合**。
+
+---
 ## 1. 管理端注册和登录接口基本信息
 数据库对应数据表admin
 
@@ -23,9 +34,74 @@
 | create_time      | datetime     | 是   | 创建时间       |
 | update_time      | timestamp    | 是   | 修改时间       |
 
-### (1).注册获取验证码
+### 1.1 注册获取验证码
+- **接口**：`POST /api/admin/verification`  
+- **请求头**：无  
+- **请求体**
 
-- **接口名称**：管理端获取验证码
+请求参数
+
+| 字段名 | 类型  | 必填   | 说明 |  
+|------ |-------|-------|-------|
+| phone | String | 是 | 手机号 |
+| password | String | 是 | 密码 |
+**示例请求体：**
+```json
+{
+  "phone": "13800000000",
+  "scene":"register"
+}
+```
+
+- **成功返回**
+```json
+{ "code": 200, "message": "success", "data": null }
+```
+- **失败返回**
+```json
+{ "code": 400, "message": "手机号已注册", "data": null }
+```
+
+### 1.2 管理端注册
+- **接口名称**：管理端注册
+- **请求方式**：POST
+- **请求路径**：`/api/admin/register`
+- **请求参数类型**：JSON
+- **返回类型**：统一响应结构（Result） 
+
+**示例请求体：**
+```json
+{
+  "phone": "13800000000",
+  "password": "123456",
+  "verification":"24565"
+}
+```
+
+- **可能的成功返回**
+```json
+{ "code": 200, "message": "success", "data": { "phone": "13800000000" } }
+```
+
+- **可能的错误返回**
+```json
+{
+  "code": 400,
+  "message": "验证码过期或者验证码不准确",
+  "data": null
+}
+
+```
+```json
+{
+  "code": 400,
+  "message": "手机号已经注册",
+  "data": null
+}
+```
+
+### 1.3 登录获取验证码
+- **接口名称**：用户端注册获取验证码
 - **请求方式**：POST
 - **请求路径**：`/api/admin/verification`
 - **请求参数类型**：JSON
@@ -35,15 +111,15 @@
 | 字段名           | 类型      | 必填 | 说明         |
 |------------------|-----------|------|--------------|
 | phone            | String    | 是   | 手机号       |
-| password         | String    | 是   | 密码         |
-| verification     | String    | 是   | 验证码   |
+
+
 
 
 **示例请求体：**
 ```json
 {
   "phone": "13800000000",
-  "password": "123456"
+  "scene":"login"
 }
 ```
 可能的错误返回
@@ -71,54 +147,44 @@
 
 ```
 
-### (2). 注册
-- **接口名称**：管理端注册
-- **请求方式**：POST
-- **请求路径**：`/api/admin/register`
-- **请求参数类型**：JSON
-- **返回类型**：统一响应结构（Result）
-
-
-**示例请求体：**
-```json
-{
-  "phone": "13800000000",
-  "password": "123456",
-  "verification":"24565"
-}
-```
-返回参数
-
-- **code**：状态码（200为成功）
-- **message**：提示信息
-- **data**：用户信息（UserVO）
-
-**示例返回体：**
-可能的错误返回
-
-- 手机号已注册时，返回：
-```json
-{
-  "code": 400,
-  "message": "验证码过期或者验证码不准确",
-  "data": null
-}
-
-```
-```json
-{
-  "code": 400,
-  "message": "手机号已经注册",
-  "data": null
-}
-```
-
-### (3). 登录
-- **接口名称**：管理端注册
+### 1.4 管理端登录（签发 adminToken）
+- **接口名称**：管理端登录
 - **请求方式**：POST
 - **请求路径**：`/api/admin/login`
 - **请求参数类型**：JSON
 - **返回类型**：统一响应结构（Result）
+
+请求参数
+| 字段名    | 类型    | 必填   | 说明    |
+|-----------|--------|--------|--------|
+| loginType | String |   是   | `password` \| `sms` |
+| phone     | String |    是  | 手机号 |
+| password  | String | 当 `password` 登录时必填 | 密码 |
+| code      | String | 当 `sms` 登录时必填 | 短信验证码 |
+
+
+返回参数
+| 字段名    | 类型    | 必填   | 说明    |
+|adminToken | string  | 是    |登录成功后返回 adminToken；除登录/注册/验证码外，其它都要|
+
+- **成功返回**
+```json
+{
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "admin": { "id": 10001, "phone": "138****0001" },
+    "adminToken": "eyJhbGciOi..."
+  }
+}
+```
+
+- **错误返回**
+{ "code": 400, "message": "账号或密码不正确", "data": null }
+{ "code": 400, "message": "验证码不正确或已过期", "data": null }
+
+---
+
 
 ## 2. 管理员投票管理接口文档
 涉及的数据库  投票活动vote_activities
@@ -182,204 +248,508 @@
 | is_verified      | Boolean   | 是   | 是否认证成功：1-是，0-否               |
 | created_at       | DateTime  | 是   | 注册时间       |
 
-###  (1). 获取投票活动列表接口
 
-- **接口说明**
-管理员登录后，在“投票管理”页面加载所有投票活动列表，
-支持通过关键词和状态进行筛选。该接口将一次性返回所有符合条件的投票活动。
-- **接口名称**：获取投票活动列表
-- **请求方式**：Get
-- **请求路径**：`/api/admin/votes`
-- **请求参数类型**：Query
-- **返回类型**：统一响应结构（Result）
+### 2.1 获取投票活动列表（筛选 + 分页）
+- **接口**：`GET /api/admin/votes`
+- **请求头**：`Authorization: Bearer <adminToken>`
+- **Query 参数**
 
 请求参数
+| 字段名           |       类型 | 必填 | 说明                                                          |
+| ------------- | -------: | -: | ----------------------------------------------------------- |
+| keyword       |   String |  否 | 活动标题或小区名模糊匹配                                                  |
+| status        |   String |  否 | 活动状态枚举（`not_started/ongoing/finished`）not_started为还没开始的活动、ongoing/finished分别为正在进行的活动和结束的 |
+| communityName |   String |  否 | 小区名关键字                                                      |
+| startFrom     | DateTime |  否 | 起始时间下限（`YYYY-MM-DD HH:mm:ss`）                               |
+| endTo         | DateTime |  否 | 结束时间上限                                                      |
+| page          |  Integer |  否 | 默认 1                                                        |
+| pageSize      |  Integer |  否 | 默认 10                                                       |
 
-| 字段名     | 类型     | 必填 | 说明                               |
-| ------- | ------ | -- | -------------------------------- |
-| keyword | String | 否  | 搜索关键词，可匹配小区名或投票议题                |
-| status  | String | 否  | 投票状态 (例如: "ongoing", "finished") |
 
-正确返回示例
 
+
+- **成功返回（示例）**
 ```json
 {
   "code": 200,
   "message": "success",
   "data": [
     {
-      "id": "1",
-      "topics": [],
-      "communityName": "乐茄小区",
-      "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
-      "beginTime": "2025/06/25 00:00",
-      "endTime": "2025/07/08 13:07",
-      "official": 1,
-      "voteNum": 0,
-      "vote_scope": "ALL"
+      "activityId": 1,
+      "title": "小区绿化整改投票",
+      "attachmentUrl": null,
+      "startTime": "2025-09-01 00:00:00",
+      "endTime": "2025-09-10 23:59:59",
+      "isOfficial": 1,
+      "voteScope": "幸福小区,3栋 1单元",
+      "communityName": "幸福小区",
+      "createdAt": "2025-08-25 09:00:00",
+      "questionCount": 3,
+      "totalVotes": 420,
+      "status": "ongoing"
     },
     {
-      "id": "2",
-      "topics": [],
-      "communityName": "乐茄小区",
-      "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
-      "beginTime": "2025/06/25 00:00",
-      "endTime": "2025/07/08 13:07",
-      "official": 1,
-      "voteNum": 0,
-      "vote_scope": "ALL"
+      "activityId": 2,
+      "title": "小区绿化整改投票",
+      "attachmentUrl": null,
+      "startTime": "2025-09-01 00:00:00",
+      "endTime": "2025-09-10 23:59:59",
+      "isOfficial": 1,
+      "voteScope": "幸福小区,3栋 1单元",
+      "communityName": "幸福小区",
+      "createdAt": "2025-08-25 09:00:00",
+      "questionCount": 3,
+      "totalVotes": 420,
+      "status": "published"
     }
-  ]
+  ],
+  "page_meta": { "page": 1, "pageSize": 10, "total": 2 }
 }
 ```
 
-错误返回示例
-
+- **错误返回（示例）**
 ```json
-{
-  "code": 401,
-  "message": "认证失败，请重新登录",
-  "data": null
-}
+{ "code": 401, "message": "认证失败，请重新登录", "data": null }
+
 ```
 
-```json
-{
-  "code": 500,
-  "message": "服务器内部错误，获取列表失败",
-  "data": null
-}
-```
-
-### (2). 获取投票统计详情接口
-
+### 2.2 获取投票活动详情议题投票详情
 - **接口说明**
   点击任一投票活动，查看其详细的统计数据，包括图表所需数据。
-- **接口名称**：获取投票统计详情
-- **请求方式**：GET
-- **请求路径**：`/api/admin/votes/{id}`
+- **接口**：`GET /api/admin/votes/{id}`
+- **请求方式：GET
+- **请求头**：`Authorization: Bearer <adminToken>`
 - **请求参数类型**：Path
 - **返回类型**：统一响应结构（Result）
 
-请求路径参数
+#### Query 参数
+| 字段名        | 类型   | 必填 | 说明 |
+| ------------- | ------ | ---- | ---- |
+| withStats     | Bool   | 否   | 是否返回统计数据（summary、charts）。默认 true |
+| withQuestions | Bool   | 否   | 是否返回议题明细（questions）。默认 true |
 
-| 字段名 | 类型     | 必填 | 说明     |
-| --- | ------ | -- | ------ |
-| id  | Int | 是  | 投票活动ID |
+请求参数
 
-正确返回示例
+| 字段名 | 类型  | 必填 | 说明                           |
+| --- | --- | -- | ---------------------------- |
+| id  | Int | 是  | 投票活动ID（`vote_activities.id`） |
 
+返回参数
+
+| 接口字段          | 类型              | 映射/来源                            | 说明   |
+| ------------- | --------------- | -------------------------------- | ---- |
+| id            | Integer         | `vote_activities.id`             | 活动ID |
+| title         | String          | `vote_activities.title`          | 标题   |
+| attachmentUrl | String\|null    | `vote_activities.attachment_url` | 附件   |
+| startTime     | DateTime        | `vote_activities.start_time`     | 开始   |
+| endTime       | DateTime        | `vote_activities.end_time`       | 结束   |
+| isOfficial    | Boolean\|Number | `vote_activities.is_official`    | 官方   |
+| voteScope     | String\|Object  | `vote_activities.vote_scope`     | 直接拼接communityName，buildingNumber, unitNumber返回投票范围  |
+| createdAt     | DateTime        | `vote_activities.created_at`     | 创建时间 |
+| status        | String          | 状态机/时间计算 (投票的状态未开始、进行中、已结束、已取消) | 状态   |
+| questionCount | Integer         | 聚合 `vote_questions`              | 议题数  |
+| totalVotes    | Integer         | 聚合 `user_votes`                  | 总投票数 |
+
+summary（仅当 withStats=true）
+| 字段                | 类型      | 说明                |
+| ----------------- | ------- | ----------------- |
+| eligible          | Integer | 具备投票资格的住户数（范围内用户） |
+| participants      | Integer | 参与投票的用户数（至少投过一题）  |
+| participationRate | Number  | 参与率（四舍五入到2位）      |
+| ballots           | Integer | 累计选票数（所有题合计）      |
+
+questions（仅当 withQuestions=true，数组项结构）
+| 接口字段         | 类型        | 映射/来源                          | 说明                           |
+| ------------ | --------- | ------------------------------ | ---------------------------- |
+| questionId   | Integer   | `vote_questions.id`            | 议题ID                         |
+| questionText | String    | `vote_questions.question_text` | 议题内容                         |
+| templateId   | Integer   | `vote_questions.template_id`   | 模板ID                         |
+| createdAt    | DateTime  | `vote_questions.created_at`    | 创建时间                         |
+| options      | Object\[] | 模板快照 × `user_votes` 聚合         | 选项统计（结构见下）                   |
+| series       | Object    | 由 `options` 生成                 | 图表序列（`labels/counts/ratios`） |
+
+questions[].options 数组项结构
+| 字段    | 类型      | 说明                               |
+| ----- | ------- | -------------------------------- |
+| text  | String  | 选项文本（来源模板快照）                     |
+| count | Integer | 该选项票数                            |
+| ratio | Number  | 占比（`count / sum(options.count)`） |
+
+questions[].series 结构
+| 字段     | 类型         | 说明                          |
+| ------ | ---------- | --------------------------- |
+| labels | String\[]  | 选项文本数组（与 `options.text` 对齐） |
+| counts | Integer\[] | 票数数组（与 `options.count` 对齐）  |
+| ratios | Number\[]  | 占比数组（与 `options.ratio` 对齐）  |
+
+
+- **成功返回**
 ```json
 {
   "code": 200,
   "message": "success",
   "data": {
-    "id": "2",
-    "topics": [],
-    "communityName": "乐茄小区",
-    "title": "杭州市临平区商品房性质老旧小区住宅加装电梯项目",
-    "beginTime": "2025/06/25 00:00",
-    "endTime": "2025/07/08 13:07",
-    "official": 1,
-    "voteNum": 0,
-    "vote_scope": "ALL"
+    "id": 2,
+    "title": "杭州市临平区小区加装电梯项目",
+    "attachmentUrl": null,
+    "startTime": "2025-06-25 00:00:00",
+    "endTime": "2025-07-08 13:07:00",
+    "isOfficial": 1,
+    "voteScope": "乐茄小区",
+    "createdAt": "2025-06-18 09:00:00",
+    "status": "ongoing",
+    "questionCount": 3,
+    "totalVotes": 420,
+    "summary": {
+      "eligible": 320,
+      "participants": 150,
+      "participationRate": 0.47,
+      "ballots": 420
+    },
+    "questions": [
+      {
+        "questionId": 1001,
+        "questionText": "是否同意方案A？",
+        "templateId": 10,
+        "createdAt": "2025-06-18 09:10:00",
+        "options": [
+          { "text": "赞同", "count": 90, "ratio": 0.6 },
+          { "text": "反对", "count": 50, "ratio": 0.333 },
+          { "text": "弃权", "count": 10, "ratio": 0.067 }
+        ],
+        "series": {
+          "labels": ["赞同","反对","弃权"],
+          "counts": [90,50,10],
+          "ratios": [0.6,0.333,0.067]
+        }
+      },
+      {
+        "questionId": 1002,
+        "questionText": "是否同意方案B？",
+        "templateId": 10,
+        "createdAt": "2025-06-18 09:12:00",
+        "options": [
+          { "text": "赞同", "count": 80, "ratio": 0.571 },
+          { "text": "反对", "count": 50, "ratio": 0.357 },
+          { "text": "弃权", "count": 10, "ratio": 0.071 }
+        ],
+        "series": {
+          "labels": ["赞同","反对","弃权"],
+          "counts": [80,50,10],
+          "ratios": [0.571,0.357,0.071]
+        }
+      }
+    ]
   }
 }
 
 ```
 
-错误返回示例
+- **错误返回**
+```json
+{ "code": 401, "message": "未登录或登录已过期", "data": null }
+{ "code": 403, "message": "无权限访问该活动", "data": null }
+{ "code": 404, "message": "活动不存在或已被删除", "data": null }
+{ "code": 500, "message": "服务器内部错误，获取详情失败", "data": null }
+```
 
+
+### 2.3 新增投票活动
+- **接口**：`POST /api/admin/votes`
+- **请求方式**：post
+- **请求头**：`Authorization: Bearer <adminToken>`
+- **请求参数类型**：Path
+- **返回类型**：统一响应结构（Result）
+
+请求参数
+| 字段名           | 类型                | 必填 | 映射/来源                            | 说明                |
+| ------------- | ----------------- | -- | -------------------------------- | ---------------------------- |
+| title         | String            | 是  | `vote_activities.title`          | 活动标题                      |
+| attachmentUrl | String \| null    | 否  | `vote_activities.attachment_url` | 附件URL                        |
+| startTime     | DateTime          | 是  | `vote_activities.start_time`     | 开始时间（`YYYY-MM-DD HH:mm:ss`）  |
+| endTime       | DateTime          | 是  | `vote_activities.end_time`       | 结束时间（需大于 `startTime`）        |
+| isOfficial    | Boolean \| Number | 否  | `vote_activities.is_official`    | 是否官方（`true/false` 或 `1/0`）   |
+| voteScope     | String \| Object  | 是  | `vote_activities.vote_scope`     | 投票范围，"ALL（全体业主）" 或votescope="PARTIAL"（部分业主）|
+| communityName | String \| null    | 条件  |  `vote_activities.community_name`| 小区名必填，在哪个小区投票               |
+| scopeItems   | Object[]          | 条件  |  `vote_activities.vote_scope`  | 当 voteScope="partial" 时,传栋号和单元号列表（可多栋多单元|
+
+scopeItems 数组项结构（多栋/多单元）
+| 字段名           | 类型                | 必填 | 映射/来源                            | 说明                |
+| ------------- | ----------------- | -- | -------------------------------- | ---------------------------- |
+| buildingNumber | String \| null   | 否  | `vote_activities.community_name` | 栋号，当voteScope = PARTIAL  必须填该字段  |
+| unitNumber    | String[] \| null    | 否  |  `vote_activities.community_name`| 单元号，选填，但只有在已填 buildingNumber 时允许,可以多单元 |
+
+"说明：新增活动仅创建“活动基本信息”。议题在后续接口“批量创建议题”里创建；发布前系统要求至少存在 1 个议题
+voteScope === "ALL" → communityName必填
+voteScope === "PARTIAL" → 展示“buildingNumber （必填），unitNumber（可选）注意顺序先栋号才有单元号,在前端均是下滑选择"
+
+- **请求体（示例全体范围）**
 ```json
 {
-  "code": 500,
-  "message": "数据库操作失败，发起投票失败",
-  "data": null
+  "title": "小区绿化整改投票",
+  "attachmentUrl": null,
+  "startTime": "2025-09-01 00:00:00",
+  "endTime": "2025-09-10 23:59:59",
+  "isOfficial": 1,
+  "voteScope": "ALL",
+  "communityName": "幸福小区"
+}
+```
+- **请求体（示例部分范围）**
+```json
+{
+  "title": "加装电梯意向征集",
+  "startTime": "2025-09-10 09:00:00",
+  "endTime": "2025-09-15 18:00:00",
+  "isOfficial": 1,
+  "communityName": "乐茄小区",
+  "voteScope": "partial",
+  "scopeItems": [
+    { "buildingNumber": "1栋"},
+    { "buildingNumber": "2栋", "unitNumbers": ["2单元, 3单元"] }
+  ]
+}
+
+```
+
+
+- **成功返回**
+```json
+{ "code": 200, "message": "success", "data": { "id": 101 } }
+```
+- **失败返回**
+```json
+{ "code": 400, "message": "参数不合法（结束时间必须大于开始时间等）", "data": null }
+{ "code": 409, "message": "同名活动或时间区间冲突", "data": null }
+{ "code": 400, "message": "voteScope不合法：partial需提供scopeItems；all不得携带scopeItems", "data": null }
+
+```
+
+### 2.4 删除投票活动
+
+- **接口**：DELETE /api/admin/votes/{id}
+- **请求方式**：DELETE
+- **请求头**：Authorization: Bearer <adminToken>
+- **Path 参数**：id: Integer（vote_activities.id）
+- **返回类型**：统一响应结构（Result）
+
+"注意：若无投票记录（user_votes 不存在该活动的记录），允许物理删除：同时删除其下 vote_questions；
+
+若已有投票记录，禁止物理删除，返回 409；前端应引导使用“修改活动状态”为 canceled（参见状态接口），以保留审计链路。"
+
+- **成功返回**
+```json
+{ "code": 200, "message": "success", "data": null }
+```
+
+- **错误返回**
+```json
+{ "code": 404, "message": "活动不存在", "data": null }
+
+```
+```json
+{ "code": 409, "message": "活动已有投票记录，禁止删除（请改为取消）", "data": null }
+```
+
+
+### 2.5 新增投票议题（单条）
+
+- **接口**：'POST /api/admin/votes/{activityId}/questions'
+- **请求方式**：POST
+- **请求头**：Authorization: Bearer <adminToken>
+- **返回类型**：统一响应结构（Result）
+
+说明：在已创建的投票活动下新增一条议题。
+
+请求参数
+
+| 字段名           | 类型              |  必填 | 映射/来源                           | 说明                                                     |
+| ------------- | --------------- | :-: | ------------------------------- | ------------------------------------------------------ |
+| questionText  | String          |  是  | `vote_questions.question_text`  | 议题题面                                                   |
+| sortOrder       | Integer         |  否  | `vote_questions.order_no`       | 排序号（越小越靠前；缺省由后端顺延）                                     |
+| options       | String[]        |  条件 | 快照表（由后端写入）               | 传此字段表示直接采用自定义选项（≥2 个、不重复、非空） |
+| startTime     | DateTime | null |  否  | `vote_questions.start_time`     | 议题开始时间（可选；**需落在活动时间窗内**）                               |
+| endTime       | DateTime | null |  否  | `vote_questions.end_time`       | 议题截止时间（可选；**需落在活动时间窗内，且 `endTime` > `startTime`**）     |
+| attachmentUrl | String | null   |  否  | `vote_questions.attachment_url` | 议题附件URL（可为空）                                           |
+
+- **请求体示例**
+```json
+{
+  "questionText": "对方案C的意见征集",
+  "orderNo": 3,
+  "options": ["支持", "中立", "反对", "弃权"],
+  "startTime": "2025-06-26 00:00:00",
+  "endTime":   "2025-06-29 23:59:59",
+  "attachmentUrl": "https://cdn.xxx/q_c_attach.pdf"
+}
+
+- **请求体示例**
+```json
+{
+  "questionText": "是否同意方案B？",
+  "sortOrder": 2,
+  "options": ["同意", "反对", "弃权"]
 }
 ```
 
----
 
-### (3). 新增投票活动接口
-
-- **接口说明**：管理员在投票管理页面点击右下角加号，填写信息并发起新的投票活动。
-- **接口名称**：新增投票活动
-- **请求方式**：POST
-- **请求路径**：`/api/admin/votes`
-- **请求参数类型**：JSON
-- **返回类型**：统一响应结构（Result）
-请求参数
-| 字段名           | 类型              | 必填 | 说明                                   |
-| ------------- | --------------- | -- | ------------------------------------ | | activity_name    | varchar(100) | 是   | 活动名称                 |
-  | topics_1         | varchar(200) | 是   | 议题一                   |
-  | topics_2         | varchar(200) | 否   | 议题二                   |
-  | topics_3         | varchar(200) | 否   | 议题三                   |
-  | begin_time       | datetime   | 是   | 开始时间                 |
-  | end_time         | datetime   | 是   | 结束时间                 |
-  | official         | tinyint(1) | 是   | 是否官方投票：0-否，1-是 |
-  | community_name   | varchar(100) | 是   | 小区名称                 |
-  | vote_scope       | varchar(200) | 是   | 已设置投票范围           |
-  | attachmentUrl       | varchar(200) | 否   | 附件           |
-
-| 字段名       | 类型            | 必填 | 说明                                |
-| --------- | ------------- | -- | --------------------------------- |
-| type      | String        | 是  | 范围类型。"ALL"代表全体业主；"PARTIAL"代表部分业主。 |
-| selection | Array[Object] | 否  | 当 type 为 "PARTIAL" 时必填。定义具体的楼幢和单元 |
-
-voteScope.selection 数组内对象结构
-
-| 字段名          | 类型            | 必填 | 说明                 |
-| ------------ | ------------- | -- | ------------------ |
-| buildingName | String        | 是  | 楼幢名称，例如 "1幢", "A座" |
-| units        | Array[String] | 是  | 该楼幢下被选中的单元列表       |
-
-Issue 对象结构
-
-| 字段名           | 类型            | 必填 | 说明                                      |
-| ------------- | ------------- | -- | --------------------------------------- |
-| title         | String        | 是  | 议题标题                                    |
-| optionsType   | String        | 是  | 选项类型。"STANDARD" 代表常用选项；"CUSTOM" 代表自定义选项 |
-| customOptions | Array[String] | 否  | 当 optionsType 为 "CUSTOM" 时必填，数组长度不超过 10 |
-
-正确返回示例
-
+- **成功返回**
 ```json
 {
   "code": 200,
-  "message": "投票发起成功",
-  "data": {
-    "voteId": "vote_new_005"
-  }
+  "message": "success",
+  "data": { "activityId": 2, "questionId": 1005 }
 }
 ```
 
-错误返回示例
+
+- **错误返回**
+```json
+{ "code": 400, "message": "参数不合法：templateId 与 options 需二选一", "data": null }
+{ "code": 400, "message": "options 非法：至少 2 个不重复的非空选项", "data": null }
+{ "code": 400, "message": "议题时间需落在活动时间范围内，且结束晚于开始", "data": null }
+{ "code": 404, "message": "活动不存在或已删除", "data": null }
+{ "code": 409, "message": "活动状态不允许新增议题（已结束/已取消）", "data": null }
+
+### 2.5 修改投票议题
+
+- **接口**：PUT /api/admin/votes/questions/{questionId}
+- **请求方式**：PUT（已有字段更新）
+- **请求头**：Authorization: Bearer <adminToken>
+- **Path 参数**：id: Integer（vote_activities.id）
+- **返回类型**：统一响应结构（Result）
+
+返回参数
+无
+
+请求参数：
+
+| 字段名          | 类型               |  必填 | 映射/来源                          | 说明                                                    |
+| ------------ | ---------------- | :-: | ------------------------------ | ----------------------------------------------------- |
+| activityId   | Integer          |  是  | `vote_questions.activity_id`   | 活动ID（先定位活动）                                           |
+| questionId   | Integer          |  是  | `vote_questions.id`            | 议题ID（再定位议题）                                           |
+| questionText | String           |  否  | `vote_questions.question_text` | 题面（可改）                                                |
+|  sortOrder     | Integer          |  否  | `vote_questions.order_no`      | 排序号（越小越靠前）                                            |
+|   options    | String[]         |  是  |vote_question_options（快照）    |最终选项文本数组（以此整包覆盖原快照）|
+| startTime    | DateTime \| null |  否  | `vote_questions.start_time`    | 议题开始时间（可选；**必须落在“活动时间窗”内**）                           |
+| endTime      | DateTime \| null |  否  | `vote_questions.end_time`      | 议题截止时间（可选；**必须落在“活动时间窗”内，且 `endTime` > `startTime`**） |
+| attachmentUrl | String\|null    |  否  |`vote_activities.attachment_url` | 活动附件                      |
+
+注意:
+"只可编辑议题，不可编辑总投票，只能删除总投票"
+"修改限制（强制约束）
+当该活动已产生投票数据（存在 user_votes 记录）或当前时间已进入/超过投票周期（状态为 ongoing/finished），禁止修改：startTime/endTime/voteScope/isOfficial/title；仅允许改 attachmentUrl。
+当无投票记录且未到开始时间（状态 not_started 且 user_votes 计数为 0），可任意修改以上字段但仍需满足校验（如时间合法）。
+
+若传 startTime/endTime：必须满足activity.start_time <= question.start_time < question.end_time <= activity.end_time"
 
 
-
-
-
+- **请求体（示例）**
 ```json
 {
-  "code": 400,
-  "message": "选择部分业主时，必须指定楼幢和单元",
-  "data": null
+  "questionText": "对方案B的意见征集",
+  "sortOrder": 3,
+  "options": ["支持", "中立", "反对", "弃权"],
+  "startTime": "2025-06-26 00:00:00",
+  "endTime":   "2025-06-29 23:59:59",
+  "attachmentUrl":Null
 }
+
 ```
 
+- **成功返回**
+```json
+{ "code": 200, "message": "success", "data": null}
+```
 
+- **错误返回**
+```json
+{ "code": 400, "message": "参数不合法（结束时间需大于开始时间）", "data": null }
+{ "code": 403, "message": "活动已开始或已有投票，禁止修改关键字段", "data": null }
+{ "code": 404, "message": "活动不存在", "data": null }
+```
+
+### 2.6 修改投票议题
+
+- **接口**：PUT /api/admin/votes/questions/{questionId}
+- **请求方式**：PUT（已有字段更新）
+- **请求头**：Authorization: Bearer <adminToken>
+- **Path 参数**：id: Integer（vote_activities.id）
+- **返回类型**：统一响应结构（Result）
+
+返回参数
+无
+
+请求参数：
+
+| 字段名          | 类型               |  必填 | 映射/来源                          | 说明                                                    |
+| ------------ | ---------------- | :-: | ------------------------------ | ----------------------------------------------------- |
+| activityId   | Integer          |  是  | `vote_questions.activity_id`   | 活动ID（先定位活动）                                           |
+| questionId   | Integer          |  是  | `vote_questions.id`            | 议题ID（再定位议题）                                           |
+| questionText | String           |  否  | `vote_questions.question_text` | 题面（可改）                                                |
+|  sortOrder     | Integer          |  否  | `vote_questions.order_no`      | 排序号（越小越靠前）                                            |
+|   options    | String[]         |  是  |vote_question_options（快照）    |最终选项文本数组（以此整包覆盖原快照）|
+| startTime    | DateTime \| null |  否  | `vote_questions.start_time`    | 议题开始时间（可选；**必须落在“活动时间窗”内**）                           |
+| endTime      | DateTime \| null |  否  | `vote_questions.end_time`      | 议题截止时间（可选；**必须落在“活动时间窗”内，且 `endTime` > `startTime`**） |
+| attachmentUrl | String\|null    |  否  |`vote_activities.attachment_url` | 活动附件                      |
+
+注意:
+"只可编辑议题，不可编辑总投票，只能删除总投票"
+"修改限制（强制约束）
+当该活动已产生投票数据（存在 user_votes 记录）或当前时间已进入/超过投票周期（状态为 ongoing/finished），禁止修改：startTime/endTime/voteScope/isOfficial/title；仅允许改 attachmentUrl。
+当无投票记录且未到开始时间（状态 not_started 且 user_votes 计数为 0），可任意修改以上字段但仍需满足校验（如时间合法）。
+
+若传 startTime/endTime：必须满足activity.start_time <= question.start_time < question.end_time <= activity.end_time"
+
+
+- **请求体（示例）**
 ```json
 {
-  "code": 409,
-  "message": "该小区已存在同名投票活动",
-  "data": null
+  "questionText": "对方案B的意见征集",
+  "sortOrder": 3,
+  "options": ["支持", "中立", "反对", "弃权"],
+  "startTime": "2025-06-26 00:00:00",
+  "endTime":   "2025-06-29 23:59:59",
+  "attachmentUrl":Null
 }
+
 ```
 
+- **成功返回**
 ```json
-{
-  "code": 500,
-  "message": "数据库操作失败，发起投票失败",
-  "data": null
-}
+{ "code": 200, "message": "success", "data": null}
 ```
+
+- **错误返回**
+```json
+{ "code": 400, "message": "参数不合法（结束时间需大于开始时间）", "data": null }
+{ "code": 403, "message": "活动已开始或已有投票，禁止修改关键字段", "data": null }
+{ "code": 404, "message": "活动不存在", "data": null }
+```
+
+## 2.7 删除投票议题
+- **接口**：DELETE /api/admin/votes/{activityId}/questions/{questionId}
+- **请求方式**：DELETE
+- **请求头**：Authorization: Bearer <adminToken>
+- **返回类型**：统一响应结构（Result）
+
+请求参数
+| 字段名        | 类型      |  必填 | 映射/来源                        | 说明                |
+| ---------- | ------- | :-: | ---------------------------- | ----------------- |
+| activityId | Integer |  是  | `vote_questions.activity_id` | 活动ID（校验议题确实属于该活动） |
+| questionId | Integer |  是  | `vote_questions.id`          | 删除的议题ID              |
+
+返回参数
+无
+
+
+- **成功返回**
+```json
+{ "code": 200, "message": "success", "data": null }
+```
+
+- **错误返回**
+```json
+{ "code": 404, "message": "活动不存在", "data": null }
+{ "code": 409, "message": "活动已有投票记录，禁止删除（请改为取消）", "data": null }
+

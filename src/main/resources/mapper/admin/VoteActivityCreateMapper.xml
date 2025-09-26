@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.admin.mapper.VoteActivityCreateMapper">
+
+    <insert id="insertVoteActivity" parameterType="com.orrange.admin.entity.VoteActivityCreate" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vote_activities (
+            title, attachment_url, start_time, end_time, 
+            is_official, vote_scope, community_name, created_at
+        ) VALUES (
+            #{title}, #{attachmentUrl}, #{startTime}, #{endTime},
+            #{isOfficial}, #{voteScope}, #{communityName}, NOW()
+        )
+    </insert>
+
+    <select id="getLastInsertId" resultType="int">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <insert id="insertVoteActivityScope">
+        INSERT INTO vote_activity_scopes (
+            activity_id, building_number, unit_number
+        ) VALUES (
+            #{activityId}, #{buildingNumber}, #{unitNumber}
+        )
+    </insert>
+
+    <select id="checkTitleExists" resultType="int">
+        SELECT COUNT(1)
+        FROM vote_activities
+        WHERE title = #{title}
+    </select>
+
+    <select id="checkTimeConflict" resultType="int">
+        SELECT COUNT(1)
+        FROM vote_activities
+        WHERE community_name = #{communityName}
+        AND (
+            (start_time &lt;= #{startTime} AND end_time &gt;= #{startTime})
+            OR (start_time &lt;= #{endTime} AND end_time &gt;= #{endTime})
+            OR (start_time &gt;= #{startTime} AND end_time &lt;= #{endTime})
+        )
+    </select>
+
+    <select id="checkActivityExists" resultType="int">
+        SELECT COUNT(1)
+        FROM vote_activities
+        WHERE id = #{activityId}
+    </select>
+
+    <select id="checkVoteRecordsExist" resultType="int">
+        SELECT COUNT(1)
+        FROM user_votes
+        WHERE vote_activity_id = #{activityId}
+    </select>
+
+    <delete id="deleteVoteActivityScopes">
+        DELETE FROM vote_activity_scopes
+        WHERE activity_id = #{activityId}
+    </delete>
+
+    <delete id="deleteVoteQuestions">
+        DELETE FROM vote_questions
+        WHERE vote_activity_id = #{activityId}
+    </delete>
+
+    <delete id="deleteVoteActivity">
+        DELETE FROM vote_activities
+        WHERE id = #{activityId}
+    </delete>
+
+</mapper>

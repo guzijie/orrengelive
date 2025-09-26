@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.user.mapper.UserVotesMapper">
+
+    <insert id="insert" parameterType="com.orrange.user.entity.UserVote" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_votes (
+            user_id, vote_activity_id, question_id, option_id,
+            vote_method, vote_time, area_size
+        ) VALUES (
+            #{userId}, #{voteActivityId}, #{questionId}, #{optionId},
+            #{voteMethod}, #{voteTime}, #{areaSize}
+        )
+    </insert>
+
+    <select id="countByUserAndQuestion" resultType="int">
+        SELECT COUNT(1)
+        FROM user_votes
+        WHERE user_id = #{userId}
+          AND vote_activity_id = #{activityId}
+          AND question_id = #{questionId}
+    </select>
+
+    <select id="selectHistory" resultType="com.orrange.user.vo.VoteHistoryItemVO">
+        SELECT
+            uv.vote_activity_id AS activityId,
+            va.title AS activityTitle,
+            va.community_name AS communityName,
+            uv.question_id AS questionId,
+            vq.title AS questionText,
+            voi.option_text AS selectedOption,
+            uv.vote_method AS voteMethod,
+            DATE_FORMAT(uv.vote_time, '%Y-%m-%d %H:%i:%s') AS voteTime
+        FROM user_votes uv
+        JOIN vote_activities va ON va.id = uv.vote_activity_id
+        JOIN vote_questions vq ON vq.id = uv.question_id
+        JOIN vote_option_set_items voi ON voi.id = uv.option_id
+        WHERE uv.user_id = #{userId}
+        <if test="activityId != null">
+            AND uv.vote_activity_id = #{activityId}
+        </if>
+        ORDER BY uv.vote_time DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <select id="countHistory" resultType="int">
+        SELECT COUNT(1)
+        FROM user_votes uv
+        WHERE uv.user_id = #{userId}
+        <if test="activityId != null">
+            AND uv.vote_activity_id = #{activityId}
+        </if>
+    </select>
+
+</mapper>

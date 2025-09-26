@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.admin.mapper.AdminVoteDetailMapper">
+
+    <resultMap id="DetailBase" type="com.orrange.admin.vo.AdminVoteDetailVO">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="attachmentUrl" column="attachmentUrl" />
+        <result property="startTime" column="startTime" />
+        <result property="endTime" column="endTime" />
+        <result property="isOfficial" column="isOfficial" />
+        <result property="voteScope" column="voteScope" />
+        <result property="communityName" column="communityName" />
+        <result property="createdAt" column="createdAt" />
+        <result property="status" column="status" />
+        <result property="questionCount" column="questionCount" />
+        <result property="totalVotes" column="totalVotes" />
+    </resultMap>
+
+    <sql id="DetailSelect">
+        SELECT
+          va.id,
+          va.title,
+          va.attachment_url AS attachmentUrl,
+          DATE_FORMAT(va.start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+          DATE_FORMAT(va.end_time,   '%Y-%m-%d %H:%i:%s') AS endTime,
+          va.is_official AS isOfficial,
+          CASE 
+            WHEN va.vote_scope = 'ALL' THEN va.community_name
+            WHEN va.vote_scope = 'PARTIAL' THEN CONCAT(va.community_name, ', ',
+              GROUP_CONCAT(
+                CONCAT_WS('', 
+                  IFNULL(vas.building_number, ''), 
+                  IF(vas.building_number IS NOT NULL, '栋', ''),
+                  IF(vas.unit_number IS NOT NULL, CONCAT(vas.unit_number, '单元'), '')
+                ) 
+                ORDER BY vas.building_number, vas.unit_number 
+                SEPARATOR ', '
+              )
+            )
+            ELSE va.community_name
+          END AS voteScope,
+          va.community_name AS communityName,
+          DATE_FORMAT(va.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
+          CASE
+            WHEN NOW() <![CDATA[<]]> va.start_time THEN 'not_started'
+            WHEN NOW() BETWEEN va.start_time AND va.end_time THEN 'ongoing'
+            ELSE 'finished'
+          END AS status,
+          COALESCE(qagg.questionCount, 0) AS questionCount,
+          COALESCE(vagg.totalVotes, 0)   AS totalVotes
+        FROM vote_activities va
+        LEFT JOIN vote_activity_scopes vas ON vas.activity_id = va.id AND va.vote_scope = 'PARTIAL'
+        LEFT JOIN (
+          SELECT vq.vote_activity_id, COUNT(*) AS questionCount
+          FROM vote_questions vq
+          GROUP BY vq.vote_activity_id
+        ) qagg ON qagg.vote_activity_id = va.id
+        LEFT JOIN (
+          SELECT uv.vote_activity_id, COUNT(*) AS totalVotes
+          FROM user_votes uv
+          GROUP BY uv.vote_activity_id
+        ) vagg ON vagg.vote_activity_id = va.id
+        WHERE va.id = #{id}
+        GROUP BY va.id, va.title, va.attachment_url, va.start_time, va.end_time, 
+                 va.is_official, va.vote_scope, va.community_name, va.created_at,
+                 qagg.questionCount, vagg.totalVotes
+    </sql>
+
+    <select id="selectBase" parameterType="int" resultMap="DetailBase">
+        <include refid="DetailSelect"/>
+    </select>
+
+    <select id="countQuestion" parameterType="int" resultType="int">
+        SELECT COUNT(*) FROM vote_questions WHERE vote_activity_id = #{id}
+    </select>
+
+    <select id="countTotalVotes" parameterType="int" resultType="int">
+        SELECT COUNT(*) FROM user_votes WHERE vote_activity_id = #{id}
+    </select>
+
+    <!-- 具备资格的用户：根据活动的 vote_scope 和 vote_activity_scopes 表匹配 users 表 -->
+    <select id="countEligible" parameterType="int" resultType="int">
+        SELECT COUNT(DISTINCT u.id) FROM users u
+        WHERE EXISTS (
+          SELECT 1 FROM vote_activities va WHERE va.id = #{id}
+          AND (
+            -- ALL 范围：该小区所有用户
+            (va.vote_scope = 'ALL' AND u.community_name = va.community_name)
+            OR
+            -- PARTIAL 范围：在 vote_activity_scopes 中指定的楼栋/单元用户
+            (va.vote_scope = 'PARTIAL' AND u.community_name = va.community_name
+             AND EXISTS (
+               SELECT 1 FROM vote_activity_scopes vas 
+               WHERE vas.activity_id = va.id
+               AND (vas.building_number IS NULL OR u.building_number = vas.building_number)
+               AND (vas.unit_number IS NULL OR u.unit_number = vas.unit_number)
+             )
+            )
+          )
+        )
+    </select>
+
+    <!-- 参与投票的用户：该活动下 user_votes 去重用户数 -->
+    <select id="countParticipants" parameterType="int" resultType="int">
+        SELECT COUNT(DISTINCT uv.user_id)
+        FROM user_votes uv
+        WHERE uv.vote_activity_id = #{id}
+    </select>
+
+    <!-- 问题基础信息列表 -->
+    <resultMap id="QuestionBase" type="com.orrange.admin.vo.AdminVoteQuestionVO">
+        <id property="questionId" column="questionId" />
+        <result property="questionText" column="questionText" />
+        <result property="templateId" column="templateId" />
+        <result property="createdAt" column="createdAt" />
+    </resultMap>
+
+    <select id="listQuestionsBase" parameterType="int" resultMap="QuestionBase">
+        SELECT
+          vq.id AS questionId,
+          vq.title AS questionText,
+          vq.option_set_id AS templateId,
+          DATE_FORMAT(vq.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt
+        FROM vote_questions vq
+        WHERE vq.vote_activity_id = #{id}
+        ORDER BY vq.sort_order ASC, vq.id ASC
+    </select>
+
+    <!-- 选项统计（强类型VO，未包含questionId） -->
+    <resultMap id="QuestionOption" type="com.orrange.admin.vo.AdminVoteQuestionOptionVO">
+        <result property="text" column="text" />
+        <result property="count" column="count" />
+    </resultMap>
+
+    <select id="listQuestionOptions" parameterType="int" resultMap="QuestionOption">
+        SELECT
+          vq.id AS questionId,
+          visi.option_text AS text,
+          COALESCE(cnt.cnt, 0) AS count
+        FROM vote_questions vq
+        JOIN vote_option_set_items visi ON visi.set_id = vq.option_set_id
+        LEFT JOIN (
+          SELECT uv.question_id, uv.option_id, COUNT(*) AS cnt
+          FROM user_votes uv
+          GROUP BY uv.question_id, uv.option_id
+        ) cnt ON cnt.question_id = vq.id AND cnt.option_id = visi.id
+        WHERE vq.vote_activity_id = #{id}
+        ORDER BY vq.id ASC, visi.sort_order ASC
+    </select>
+
+    <!-- 选项统计（Map 形式，包含 questionId/text/count） -->
+    <select id="listQuestionOptionsAsMap" parameterType="int" resultType="map">
+        SELECT
+          vq.id AS questionId,
+          visi.option_text AS text,
+          COALESCE(cnt.cnt, 0) AS count
+        FROM vote_questions vq
+        JOIN vote_option_set_items visi ON visi.set_id = vq.option_set_id
+        LEFT JOIN (
+          SELECT uv.question_id, uv.option_id, COUNT(*) AS cnt
+          FROM user_votes uv
+          GROUP BY uv.question_id, uv.option_id
+        ) cnt ON cnt.question_id = vq.id AND cnt.option_id = visi.id
+        WHERE vq.vote_activity_id = #{id}
+        ORDER BY vq.id ASC, visi.sort_order ASC
+    </select>
+</mapper>

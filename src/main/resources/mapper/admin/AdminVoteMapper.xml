@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.admin.mapper.AdminVoteMapper">
+
+    <sql id="BaseSelect">
+        SELECT
+          va.id            AS activityId,
+          va.title         AS title,
+          va.attachment_url AS attachmentUrl,
+          DATE_FORMAT(va.start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+          DATE_FORMAT(va.end_time, '%Y-%m-%d %H:%i:%s')   AS endTime,
+          va.is_official   AS isOfficial,
+          CASE 
+            WHEN va.vote_scope = 'ALL' THEN va.community_name
+            WHEN va.vote_scope = 'PARTIAL' THEN CONCAT(va.community_name, ', ', 
+              GROUP_CONCAT(
+                CONCAT_WS('', 
+                  IFNULL(vas.building_number, ''), 
+                  IF(vas.building_number IS NOT NULL, '栋', ''),
+                  IF(vas.unit_number IS NOT NULL, CONCAT(vas.unit_number, '单元'), '')
+                ) 
+                ORDER BY vas.building_number, vas.unit_number 
+                SEPARATOR ', '
+              )
+            )
+            ELSE va.community_name
+          END AS voteScope,
+          va.community_name AS communityName,
+          DATE_FORMAT(va.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
+          COALESCE(qagg.questionCount, 0) AS questionCount,
+          COALESCE(vagg.totalVotes, 0)   AS totalVotes,
+          CASE
+              WHEN NOW() <![CDATA[<]]> va.start_time THEN 'not_started'
+              WHEN NOW() BETWEEN va.start_time AND va.end_time THEN 'ongoing'
+              ELSE 'finished'
+          END AS status
+
+        FROM vote_activities va
+        LEFT JOIN vote_activity_scopes vas ON vas.activity_id = va.id AND va.vote_scope = 'PARTIAL'
+        LEFT JOIN (
+          SELECT vq.vote_activity_id, COUNT(*) AS questionCount
+          FROM vote_questions vq
+          GROUP BY vq.vote_activity_id
+        ) qagg ON qagg.vote_activity_id = va.id
+        LEFT JOIN (
+          SELECT uv.vote_activity_id, COUNT(*) AS totalVotes
+          FROM user_votes uv
+          GROUP BY uv.vote_activity_id
+        ) vagg ON vagg.vote_activity_id = va.id
+    </sql>
+
+    <sql id="GroupBy">
+        GROUP BY va.id, va.title, va.attachment_url, va.start_time, va.end_time, 
+                 va.is_official, va.vote_scope, va.community_name, va.created_at,
+                 qagg.questionCount, vagg.totalVotes
+    </sql>
+
+    <sql id="Where">
+        <where>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (va.title LIKE CONCAT('%', #{q.keyword}, '%') OR va.community_name LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q.communityName != null and q.communityName != ''">
+                AND va.community_name LIKE CONCAT('%', #{q.communityName}, '%')
+            </if>
+            <if test="q.startFrom != null and q.startFrom != ''">
+                AND va.start_time &gt;= STR_TO_DATE(#{q.startFrom}, '%Y-%m-%d %H:%i:%s')
+            </if>
+            <if test="q.endTo != null and q.endTo != ''">
+                AND va.end_time &lt;= STR_TO_DATE(#{q.endTo}, '%Y-%m-%d %H:%i:%s')
+            </if>
+            <if test="q.status != null and q.status != ''">
+                <choose>
+                    <when test="q.status == 'not_started'">
+                        AND NOW() &lt; va.start_time
+                    </when>
+                    <when test="q.status == 'ongoing'">
+                        AND NOW() BETWEEN va.start_time AND va.end_time
+                    </when>
+                    <when test="q.status == 'finished'">
+                        AND NOW() &gt; va.end_time
+                    </when>
+                </choose>
+            </if>
+        </where>
+    </sql>
+
+    <select id="countVotes" parameterType="map" resultType="int">
+        SELECT COUNT(1)
+        FROM (
+          <include refid="BaseSelect"/>
+          <include refid="Where"/>
+          <include refid="GroupBy"/>
+        ) t
+    </select>
+
+    <select id="listVotes" parameterType="map" resultType="com.orrange.admin.vo.AdminVoteItemVO">
+        <include refid="BaseSelect"/>
+        <include refid="Where"/>
+        <include refid="GroupBy"/>
+        ORDER BY va.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

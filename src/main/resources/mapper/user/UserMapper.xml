@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.user.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.orrange.user.entity.User">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="gender" property="gender" jdbcType="VARCHAR"/>
+        <result column="id_card" property="idCard" jdbcType="VARCHAR"/>
+        <result column="community_name" property="communityName" jdbcType="VARCHAR"/>
+        <result column="building_number" property="buildingNumber" jdbcType="VARCHAR"/>
+        <result column="unit_number" property="unitNumber" jdbcType="VARCHAR"/>
+        <result column="room_number" property="roomNumber" jdbcType="VARCHAR"/>
+        <result column="area_size" property="areaSize" jdbcType="DECIMAL"/>
+        <result column="is_verified" property="isVerified" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, phone, password, name, gender, id_card, community_name, building_number, 
+        unit_number, room_number, area_size, is_verified, created_at
+    </sql>
+
+    <select id="selectByPhone" parameterType="string" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users
+        WHERE phone = #{phone}
+    </select>
+
+    <select id="selectByPhoneAndPassword" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users
+        WHERE phone = #{phone} AND password = #{password}
+    </select>
+
+    <select id="selectById" parameterType="int" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insertUser" parameterType="com.orrange.user.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            phone, password, name, gender, id_card, community_name, 
+            building_number, unit_number, room_number, area_size, is_verified, created_at
+        ) VALUES (
+            #{phone}, #{password}, #{name}, #{gender}, #{idCard}, #{communityName},
+            #{buildingNumber}, #{unitNumber}, #{roomNumber}, #{areaSize}, #{isVerified}, #{createdAt}
+        )
+    </insert>
+
+</mapper>

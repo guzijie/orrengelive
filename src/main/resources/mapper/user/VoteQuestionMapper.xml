@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.user.mapper.VoteQuestionMapper">
+
+    <resultMap id="QuestionResultMap" type="com.orrange.user.entity.VoteQuestion">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="vote_activity_id" property="voteActivityId" jdbcType="INTEGER"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+        <result column="option_set_id" property="optionSetId" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="OptionResultMap" type="com.orrange.user.entity.VoteOptionSetItem">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="set_id" property="setId" jdbcType="INTEGER"/>
+        <result column="option_text" property="optionText" jdbcType="VARCHAR"/>
+        <result column="option_code" property="optionCode" jdbcType="VARCHAR"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <select id="selectByActivityId" parameterType="int" resultMap="QuestionResultMap">
+        SELECT id, vote_activity_id, title, sort_order, option_set_id, created_at
+        FROM vote_questions
+        WHERE vote_activity_id = #{activityId}
+        ORDER BY sort_order ASC, created_at ASC
+    </select>
+
+    <select id="selectById" parameterType="int" resultMap="QuestionResultMap">
+        SELECT id, vote_activity_id, title, sort_order, option_set_id, created_at
+        FROM vote_questions
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectOptionsBySetId" parameterType="int" resultMap="OptionResultMap">
+        SELECT id, set_id, option_text, option_code, sort_order
+        FROM vote_option_set_items
+        WHERE set_id = #{setId}
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectOptionBySetIdAndMatch" resultMap="OptionResultMap">
+        SELECT id, set_id, option_text, option_code, sort_order
+        FROM vote_option_set_items
+        WHERE set_id = #{setId}
+          AND (
+            option_text = #{match}
+            OR option_code = #{match}
+            OR CONCAT(option_text, option_code) = #{match}
+          )
+        ORDER BY sort_order ASC
+        LIMIT 1
+    </select>
+
+</mapper>

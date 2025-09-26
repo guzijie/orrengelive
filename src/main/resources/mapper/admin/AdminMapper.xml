@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.orrange.admin.mapper.AdminMapper">
-    <select id="selectByPhone" parameterType="string" resultType="com.orrange.admin.entity.Admin">
-        SELECT id, phone FROM admin WHERE phone = #{phone}
+    <resultMap id="AdminResultMap" type="com.orrange.admin.entity.Admin">
+        <id property="id" column="id" />
+        <result property="phone" column="phone" />
+        <result property="password" column="password" />
+    </resultMap>
+
+    <select id="selectByPhone" parameterType="string" resultMap="AdminResultMap">
+        SELECT id, phone, password FROM admin WHERE phone = #{phone}
     </select>
     
     <insert id="insertAdmin" parameterType="com.orrange.admin.entity.Admin">

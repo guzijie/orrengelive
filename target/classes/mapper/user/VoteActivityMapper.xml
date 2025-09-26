@@ -9,15 +9,14 @@
         <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
         <result column="is_official" property="isOfficial" jdbcType="TINYINT"/>
         <result column="community_name" property="communityName" jdbcType="VARCHAR"/>
-        <result column="building_number" property="buildingNumber" jdbcType="VARCHAR"/>
-        <result column="unit_number" property="unitNumber" jdbcType="VARCHAR"/>
+        <result column="vote_scope" property="voteScope" jdbcType="VARCHAR"/>
         <result column="attachment_url" property="attachmentUrl" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id, title, start_time, end_time, is_official, community_name, 
-        building_number, unit_number, attachment_url, created_at
+        vote_scope, attachment_url, created_at
     </sql>
 
     <select id="selectById" parameterType="int" resultMap="BaseResultMap">

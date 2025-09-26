@@ -9,8 +9,7 @@ public class VoteActivity {
     private Date endTime;
     private Boolean isOfficial;
     private String communityName;
-    private String buildingNumber;
-    private String unitNumber;
+    private String voteScope; // 'ALL' or 'PARTIAL'
     private String attachmentUrl;
     private Date createdAt;
 
@@ -63,20 +62,12 @@ public class VoteActivity {
         this.communityName = communityName;
     }
 
-    public String getBuildingNumber() {
-        return buildingNumber;
+    public String getVoteScope() {
+        return voteScope;
     }
 
-    public void setBuildingNumber(String buildingNumber) {
-        this.buildingNumber = buildingNumber;
-    }
-
-    public String getUnitNumber() {
-        return unitNumber;
-    }
-
-    public void setUnitNumber(String unitNumber) {
-        this.unitNumber = unitNumber;
+    public void setVoteScope(String voteScope) {
+        this.voteScope = voteScope;
     }
 
     public String getAttachmentUrl() {
