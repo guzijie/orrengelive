@@ -727,7 +727,7 @@ voteScope === "PARTIAL" → 展示“buildingNumber （必填），unitNumber（
 { "code": 404, "message": "活动不存在", "data": null }
 ```
 
-## 2.7 删除投票议题
+### 2.7 删除投票议题
 - **接口**：DELETE /api/admin/votes/{activityId}/questions/{questionId}
 - **请求方式**：DELETE
 - **请求头**：Authorization: Bearer <adminToken>

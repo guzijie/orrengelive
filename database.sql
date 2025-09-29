@@ -30,7 +30,10 @@ CREATE TABLE users (
   room_number     VARCHAR(20)  COMMENT '房号',
   area_size       DECIMAL(10,2) COMMENT '房屋面积 m²',
   is_verified     TINYINT(1)   DEFAULT 0 COMMENT '实名认证通过 1/0',
-  created_at      DATETIME     NOT NULL COMMENT '注册时间'
+  created_at      DATETIME     NOT NULL COMMENT '注册时间',
+    `status` enum('ACTIVE','DISABLED') CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT 'ACTIVE' COMMENT '账户状态',
+  `disabled_by` bigint(20) NULL DEFAULT NULL COMMENT '禁用操作者(管理员ID)',
+  `disabled_at` datetime NULL DEFAULT NULL COMMENT '禁用时间',
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='业主表';
 
 /* ---------- 2. admin：后台账号 ---------- */
@@ -121,10 +124,10 @@ INSERT INTO users
 (id, phone, password, name, gender, id_card, community_name, building_number,
  unit_number, room_number, area_size, is_verified, created_at)
 VALUES
-(1, '13800001111', '$2b$10$hash1', '王小明', '男', '110101199001015432',
- '阳光花园', '3', '1', '504', 88.50, 1, '2025-08-25 10:00:00'),
-(2, '13900002222', '$2b$10$hash2', '李晓红', '女', '110101199305064321',
- '阳光花园', '3', '2', '602', 72.00, 1, '2025-08-25 10:05:00');
+ (1, '13811112222', '123456', '张三', '男', '110101199001011234', '幸福花园', '1栋', '1单元', '101', 89.50, 1, '2025-08-08 10:00:00', 'ACTIVE', NULL, NULL);
+ (2, '13811113333', '123456', '李四', '女', '110101199202022345', '幸福花园', '1栋', '1单元', '102', 92.30, 1, '2025-08-08 10:05:00', 'ACTIVE', NULL, NULL);
+ (3, '13811114444', '123456', '王五', '男', '110101199303033456', '幸福花园', '2栋', '2单元', '201', 105.70, 1, '2025-08-08 10:10:00', 'ACTIVE', NULL, NULL);
+ (5, '12345678900', '9ae0147d65724f72f74804af4aac6f13', '张三', '男', '3301***********1234', '幸福小区', '3栋', '1单元', '1504', 89.50, 1, '2025-08-27 00:36:52', 'ACTIVE', NULL, NULL);
 
 -- ---------- admin ----------
 INSERT INTO admin

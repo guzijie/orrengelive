@@ -17,6 +17,9 @@ public class User {
     private BigDecimal areaSize;
     private Boolean isVerified;
     private Date createdAt;
+    private String status;
+    private Long disabledBy;
+    private Date disabledAt;
 
     // Getters and Setters
     public Integer getId() {
@@ -121,6 +124,30 @@ public class User {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Long getDisabledBy() {
+        return disabledBy;
+    }
+
+    public void setDisabledBy(Long disabledBy) {
+        this.disabledBy = disabledBy;
+    }
+
+    public Date getDisabledAt() {
+        return disabledAt;
+    }
+
+    public void setDisabledAt(Date disabledAt) {
+        this.disabledAt = disabledAt;
     }
 }
 

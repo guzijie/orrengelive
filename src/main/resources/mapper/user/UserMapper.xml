@@ -16,11 +16,14 @@
         <result column="area_size" property="areaSize" jdbcType="DECIMAL"/>
         <result column="is_verified" property="isVerified" jdbcType="TINYINT"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="disabled_by" property="disabledBy" jdbcType="BIGINT"/>
+        <result column="disabled_at" property="disabledAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id, phone, password, name, gender, id_card, community_name, building_number, 
-        unit_number, room_number, area_size, is_verified, created_at
+        unit_number, room_number, area_size, is_verified, created_at, status, disabled_by, disabled_at
     </sql>
 
     <select id="selectByPhone" parameterType="string" resultMap="BaseResultMap">
@@ -50,5 +53,51 @@
             #{buildingNumber}, #{unitNumber}, #{roomNumber}, #{areaSize}, #{isVerified}, #{createdAt}
         )
     </insert>
+
+    <update id="updateUserProfile">
+        UPDATE users 
+        SET 
+            phone = #{phone},
+            name = #{name},
+            gender = #{gender},
+            id_card = #{idCard},
+            community_name = #{communityName},
+            building_number = #{buildingNumber},
+            unit_number = #{unitNumber},
+            room_number = #{roomNumber},
+            area_size = #{areaSize},
+            is_verified = #{isVerified}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectIdByPhoneExcludeId" resultType="int">
+        SELECT id 
+        FROM users 
+        WHERE phone = #{phone} AND id != #{excludeId}
+    </select>
+
+    <select id="checkUserVoted" resultType="int">
+        SELECT COUNT(*) 
+        FROM user_votes 
+        WHERE user_id = #{userId} AND question_id = #{questionId}
+    </select>
+
+    <insert id="insertUserVote">
+        INSERT INTO user_votes (
+            user_id, vote_activity_id, question_id, option_id, 
+            vote_method, vote_time, area_size
+        ) VALUES (
+            #{userId}, #{activityId}, #{questionId}, #{optionId}, 
+            #{voteMethod}, #{voteTime}, #{areaSize}
+        )
+    </insert>
+
+    <select id="findOptionIdByText" resultType="int">
+        SELECT visi.id 
+        FROM vote_questions vq
+        JOIN vote_option_set_items visi ON visi.set_id = vq.option_set_id
+        WHERE vq.id = #{questionId} AND visi.option_text = #{optionText}
+        LIMIT 1
+    </select>
 
 </mapper>
