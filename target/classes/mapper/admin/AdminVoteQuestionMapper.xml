@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.orrange.admin.mapper.AdminVoteQuestionMapper">
+
+    <!-- 根据活动ID查询活动信息 -->
+    <select id="selectVoteActivityById" parameterType="int" resultType="com.orrange.user.entity.VoteActivity">
+        SELECT 
+            id,
+            title,
+            start_time AS startTime,
+            end_time AS endTime,
+            is_official AS isOfficial,
+            vote_scope AS voteScope,
+            community_name AS communityName,
+            attachment_url AS attachmentUrl,
+            created_at AS createdAt
+        FROM vote_activities 
+        WHERE id = #{id}
+    </select>
+
+    <!-- 插入议题 -->
+    <insert id="insertVoteQuestion" parameterType="map" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vote_questions (
+            vote_activity_id,
+            title,
+            sort_order,
+            option_set_id,
+            start_time,
+            end_time,
+            attachment_url,
+            created_at
+        ) VALUES (
+            #{activityId},
+            #{questionText},
+            #{sortOrder},
+            #{optionSetId},
+            #{startTime},
+            #{endTime},
+            #{attachmentUrl},
+            NOW()
+        )
+    </insert>
+
+    <!-- 插入议题并返回ID -->
+    <insert id="insertVoteQuestionAndReturnId" parameterType="map" useGeneratedKeys="true" keyProperty="questionId">
+        INSERT INTO vote_questions (
+            vote_activity_id,
+            title,
+            sort_order,
+            option_set_id,
+            start_time,
+            end_time,
+            attachment_url,
+            created_at
+        ) VALUES (
+            #{activityId},
+            #{questionText},
+            #{sortOrder},
+            #{optionSetId},
+            #{startTime},
+            #{endTime},
+            #{attachmentUrl},
+            NOW()
+        )
+    </insert>
+
+    <!-- 插入议题并返回ID（使用DTO） -->
+    <insert id="insertVoteQuestionWithDTO" parameterType="com.orrange.admin.dto.VoteQuestionInsertDTO" useGeneratedKeys="true" keyProperty="questionId">
+        INSERT INTO vote_questions (
+            vote_activity_id,
+            title,
+            sort_order,
+            option_set_id,
+            start_time,
+            end_time,
+            attachment_url,
+            created_at
+        ) VALUES (
+            #{activityId},
+            #{questionText},
+            #{sortOrder},
+            #{optionSetId},
+            #{startTime},
+            #{endTime},
+            #{attachmentUrl},
+            NOW()
+        )
+    </insert>
+
+    <!-- 获取下一个排序号 -->
+    <select id="getNextSortOrder" parameterType="int" resultType="int">
+        SELECT COALESCE(MAX(sort_order), 0) + 1 
+        FROM vote_questions 
+        WHERE vote_activity_id = #{activityId}
+    </select>
+
+    <!-- 插入选项模板项 -->
+    <insert id="insertOptionSetItem" parameterType="map" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vote_option_set_items (
+            set_id,
+            option_text,
+            option_code,
+            sort_order
+        ) VALUES (
+            #{setId},
+            #{optionText},
+            #{optionCode},
+            #{sortOrder}
+        )
+    </insert>
+
+    <!-- 获取下一个选项模板ID -->
+    <select id="getNextOptionSetId" resultType="int">
+        SELECT COALESCE(MAX(set_id), 0) + 1 
+        FROM vote_option_set_items
+    </select>
+
+    <!-- 批量插入选项模板项 -->
+    <insert id="batchInsertOptionSetItems" parameterType="map">
+        INSERT INTO vote_option_set_items (set_id, option_text, option_code, sort_order)
+        VALUES
+        <foreach collection="options" item="option" index="index" separator=",">
+            (#{setId}, #{option}, CHAR(65 + #{index}), #{index} + 1)
+        </foreach>
+    </insert>
+
+    <!-- 获取指定活动的最新议题ID -->
+    <select id="getLatestQuestionId" parameterType="int" resultType="int">
+        SELECT id 
+        FROM vote_questions 
+        WHERE vote_activity_id = #{activityId} 
+        ORDER BY created_at DESC, id DESC 
+        LIMIT 1
+    </select>
+
+    <!-- 根据活动ID和议题ID查询议题是否存在 -->
+    <select id="selectQuestionByIdAndActivity" resultType="int">
+        SELECT id 
+        FROM vote_questions 
+        WHERE id = #{questionId} AND vote_activity_id = #{activityId}
+    </select>
+
+    <!-- 检查议题是否有投票记录 -->
+    <select id="countVotesByQuestionId" parameterType="int" resultType="int">
+        SELECT COUNT(*) 
+        FROM user_votes 
+        WHERE question_id = #{questionId}
+    </select>
+
+    <!-- 删除议题 -->
+    <delete id="deleteQuestionById" parameterType="int">
+        DELETE FROM vote_questions 
+        WHERE id = #{questionId}
+    </delete>
+
+    <!-- 根据议题ID查询议题信息 -->
+    <select id="selectQuestionById" parameterType="int" resultType="com.orrange.admin.dto.VoteQuestionInsertDTO">
+        SELECT 
+            id AS questionId,
+            vote_activity_id AS activityId,
+            title AS questionText,
+            sort_order AS sortOrder,
+            option_set_id AS optionSetId,
+            start_time AS startTime,
+            end_time AS endTime,
+            attachment_url AS attachmentUrl
+        FROM vote_questions 
+        WHERE id = #{questionId}
+    </select>
+
+    <!-- 更新议题信息 -->
+    <update id="updateQuestionById">
+        UPDATE vote_questions 
+        SET 
+            title = #{questionText},
+            sort_order = #{sortOrder},
+            option_set_id = #{optionSetId},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            attachment_url = #{attachmentUrl}
+        WHERE id = #{questionId}
+    </update>
+
+    <!-- 删除议题的所有选项 -->
+    <delete id="deleteQuestionOptions">
+        DELETE FROM vote_option_set_items 
+        WHERE set_id = (
+            SELECT option_set_id 
+            FROM vote_questions 
+            WHERE id = #{questionId}
+        )
+    </delete>
+
+    <!-- 获取议题的选项模板ID -->
+    <select id="getQuestionOptionSetId" parameterType="int" resultType="int">
+        SELECT option_set_id 
+        FROM vote_questions 
+        WHERE id = #{questionId}
+    </select>
+
+</mapper>
